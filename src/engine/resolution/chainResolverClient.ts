@@ -59,6 +59,13 @@ export async function resolveAddressNetworksClient(address: string): Promise<Cha
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address: trimmed }),
       });
+      if (!response.ok) {
+        response = await fetch('http://localhost:3001/api/v1/resolve-network', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: trimmed }),
+        });
+      }
     } catch {
       // Fallback to explicit localhost backend URL if relative endpoint fetch fails
       response = await fetch('http://localhost:3001/api/v1/resolve-network', {

@@ -277,7 +277,12 @@ app.post('/api/v1/trace', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`[CHAIN INTEL API] Multi-Chain Server listening on http://localhost:${PORT}`);
-});
+export default app;
+
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`[CHAIN INTEL API] Multi-Chain Server listening on http://localhost:${PORT}`);
+  });
+}
+
 

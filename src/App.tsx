@@ -85,17 +85,35 @@ export function App() {
     options?: { maxHops?: number; direction?: 'OUT' | 'IN' | 'BOTH'; maxCounterpartiesPerNode?: number }
   ) => {
     try {
-      const response = await fetch('/api/v1/trace', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          targetInput: targetAddr,
-          chain: chainToUse,
-          maxHops: options?.maxHops || settings.investigation.defaultTraceDepth || 2,
-          direction: options?.direction || 'BOTH',
-          maxCounterpartiesPerNode: options?.maxCounterpartiesPerNode || 10,
-        }),
+      let response: Response;
+      const tracePayload = JSON.stringify({
+        targetInput: targetAddr,
+        chain: chainToUse,
+        maxHops: options?.maxHops || settings.investigation.defaultTraceDepth || 2,
+        direction: options?.direction || 'BOTH',
+        maxCounterpartiesPerNode: options?.maxCounterpartiesPerNode || 10,
       });
+
+      try {
+        response = await fetch('/api/v1/trace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: tracePayload,
+        });
+        if (!response.ok) {
+          response = await fetch('http://localhost:3001/api/v1/trace', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: tracePayload,
+          });
+        }
+      } catch {
+        response = await fetch('http://localhost:3001/api/v1/trace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: tracePayload,
+        });
+      }
 
       const data = await response.json();
 
