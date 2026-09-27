@@ -9,6 +9,7 @@ import { VASPIntelligenceScreen } from './components/vasp/VASPIntelligenceScreen
 import { BatchInvestigationScreen } from './components/batch/BatchInvestigationScreen';
 import { ReportsScreen } from './components/reports/ReportsScreen';
 import { SahyogIntegrationScreen } from './components/sahyog/SahyogIntegrationScreen';
+import { SahyogActionModal } from './components/sahyog/SahyogActionModal';
 import { VASPCommonsScreen } from './components/commons/VASPCommonsScreen';
 import { CaseHistoryScreen } from './components/history/CaseHistoryScreen';
 import { SystemStatusScreen } from './components/status/SystemStatusScreen';
@@ -44,6 +45,7 @@ export function App() {
   const [liveStatusBadge, setLiveStatusBadge] = useState<string | undefined>(undefined);
   const [isLegalNoticeOpen, setIsLegalNoticeOpen] = useState(false);
   const [isFreezeModalOpen, setIsFreezeModalOpen] = useState(false);
+  const [isSahyogActionModalOpen, setIsSahyogActionModalOpen] = useState(false);
   const [dataSourceMode, setDataSourceMode] = useState<'DEMO' | 'LIVE'>('DEMO');
 
   const [settings, setSettings] = useState<ChainSightSettings>(() => loadSettings());
@@ -154,13 +156,7 @@ export function App() {
     const targetAddr = query.trim();
 
     if (dataSourceMode === 'LIVE') {
-      // If chain is explicitly provided (manual override), execute trace directly
-      if (selectedChain) {
-        await executeLiveTraceForChain(targetAddr, selectedChain, options);
-        return;
-      }
-
-      // Automatic Evidence-Based Network Resolution Protocol
+      // Automatic Evidence-Based Network Resolution Protocol (Always active for LIVE mode)
       setIsResolvingNetwork(true);
       try {
         const resolution = await resolveAddressNetworksClient(targetAddr);
@@ -222,8 +218,7 @@ export function App() {
 
   const handleStartTraceFromForm = async (newCaseParams: Partial<InvestigationCase>) => {
     const targetAddr = newCaseParams.targetInput || '0x71C7656EC7ab88b098defb751b7401b5f6d8976f';
-    const selectedChain = newCaseParams.chain || 'Ethereum';
-    handleSearchInput(targetAddr, selectedChain);
+    handleSearchInput(targetAddr);
   };
 
   // If viewing Landing Page, render full public landing view
@@ -267,6 +262,7 @@ export function App() {
           <main className="p-6 flex-1">
             {activeTab === 'not_found' && (
               <NotFoundScreen
+                key={lastSearchQuery || 'not-found'}
                 searchedTerm={lastSearchQuery}
                 errorMessage={liveErrorMessage}
                 statusBadge={liveStatusBadge}
@@ -295,6 +291,7 @@ export function App() {
                 onOpenReport={() => setActiveTab('reports')}
                 onOpenLegalNotice={() => setIsLegalNoticeOpen(true)}
                 onOpenFreezeModal={() => setIsFreezeModalOpen(true)}
+                onOpenSahyogModal={() => setIsSahyogActionModalOpen(true)}
               />
             )}
 
@@ -320,7 +317,10 @@ export function App() {
             )}
 
             {activeTab === 'sahyog_integration' && (
-              <SahyogIntegrationScreen currentCase={activeCase} />
+              <SahyogIntegrationScreen
+                currentCase={activeCase}
+                onOpenActionModal={() => setIsSahyogActionModalOpen(true)}
+              />
             )}
 
             {activeTab === 'vasp_commons' && <VASPCommonsScreen />}
@@ -341,6 +341,13 @@ export function App() {
           </main>
         </div>
       </div>
+
+      {/* Global SAHYOG Action Workflow Modal */}
+      <SahyogActionModal
+        currentCase={activeCase}
+        isOpen={isSahyogActionModalOpen}
+        onClose={() => setIsSahyogActionModalOpen(false)}
+      />
 
       {/* Global Legal Disclosure Request Draft Modal (Sec 91) */}
       <LegalNoticeModal

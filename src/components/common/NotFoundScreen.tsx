@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, AlertTriangle, ArrowLeft, Shield, RefreshCw } from 'lucide-react';
 import { BlockchainType } from '../../types';
 
@@ -19,12 +19,29 @@ export const NotFoundScreen: React.FC<NotFoundScreenProps> = ({
 }) => {
   const [query, setQuery] = useState(searchedTerm);
 
+  // Sync re-query input field whenever the queried target address changes
+  useEffect(() => {
+    setQuery(searchedTerm);
+  }, [searchedTerm]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
       onSearchNewTrace(query.trim());
     }
   };
+
+  const isNoActivity = statusBadge?.includes('NO SUPPORTED BLOCKCHAIN ACTIVITY');
+  const isInvalidAddress = statusBadge?.includes('INVALID_ADDRESS') || statusBadge?.includes('INVALID ADDRESS');
+  const isProviderError = statusBadge?.includes('LIVE_DATA_UNAVAILABLE') || statusBadge?.includes('PROVIDER ERROR');
+
+  const displayTitle = isNoActivity
+    ? 'No Supported Blockchain Activity Found'
+    : isInvalidAddress
+    ? 'Invalid Blockchain Address Format'
+    : isProviderError
+    ? 'Live Blockchain Query Failed'
+    : 'Case Reference or Target Address Not Found';
 
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center max-w-3xl mx-auto">
@@ -36,27 +53,27 @@ export const NotFoundScreen: React.FC<NotFoundScreenProps> = ({
 
       {/* Main Title */}
       <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-3">
-        {errorMessage ? 'Live Blockchain Query Failed' : 'Case Reference or Target Address Not Found'}
+        {displayTitle}
       </h1>
 
       <p className="text-sm sm:text-base text-slate-600 max-w-xl mb-8 leading-relaxed">
         {errorMessage ? (
-          <span className="text-rose-700 font-medium block bg-rose-50 p-3 rounded border border-rose-200 font-mono text-xs">
+          <span className="text-rose-700 font-medium block bg-rose-50 p-3 rounded border border-rose-200 font-mono text-xs text-left">
             {errorMessage}
           </span>
         ) : (
           <>
             The requested wallet address, transaction hash, or case identifier{' '}
             {searchedTerm ? <code className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-800 font-mono text-xs font-bold">{searchedTerm}</code> : 'you queried'}{' '}
-            could not be resolved in active intelligence indices or requires a fresh multi-chain query.
+            could not be associated with observable activity on the currently supported networks (Ethereum, Polygon, BNB, Solana, TRON, Bitcoin).
           </>
         )}
       </p>
 
-      {/* Search Input Card */}
+      {/* Search Input Card — Always initializes from actual failed target */}
       <div className="w-full bg-white border border-slate-200 rounded-xl p-6 shadow-sm mb-8 text-left">
         <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 font-mono">
-          Initiate Target Lookup / Re-query
+          Initiate Target Lookup / Re-query Target
         </label>
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row items-center gap-3">
           <div className="relative flex-1 w-full">
@@ -65,7 +82,7 @@ export const NotFoundScreen: React.FC<NotFoundScreenProps> = ({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Enter valid EVM (0x...), BTC, SOL, TRON address or Case ID (e.g. TB-001)..."
+              placeholder="Enter valid EVM (0x...), Solana, TRON, BTC address or Case ID..."
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
             />
           </div>
@@ -79,25 +96,25 @@ export const NotFoundScreen: React.FC<NotFoundScreenProps> = ({
         </form>
       </div>
 
-      {/* Troubleshooting Tips / Diagnostic Options */}
+      {/* Diagnostic Guidance Options */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full text-left mb-8">
         <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
           <h4 className="text-xs font-bold text-slate-900 flex items-center space-x-1.5 mb-1.5">
             <Shield className="w-4 h-4 text-blue-600" />
-            <span>Format & Network Check</span>
+            <span>Multi-Chain Automatic Probing</span>
           </h4>
           <p className="text-xs text-slate-600 leading-relaxed">
-            Ensure Ethereum addresses start with <code className="font-mono bg-white px-1 border rounded">0x</code> (42 chars) and explicit network is selected in the search dropdown bar.
+            The platform automatically resolves address syntax and live transfer activity across Ethereum, Polygon, BNB, Solana, TRON, and Bitcoin without requiring pre-selected settings.
           </p>
         </div>
 
         <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
           <h4 className="text-xs font-bold text-slate-900 flex items-center space-x-1.5 mb-1.5">
             <Shield className="w-4 h-4 text-purple-600" />
-            <span>Demo Preset Cases</span>
+            <span>Demo Preset Benchmarks</span>
           </h4>
           <p className="text-xs text-slate-600 leading-relaxed">
-            You can load pre-indexed investigation benchmarks like <button onClick={() => onSearchNewTrace('TB-001')} className="text-blue-600 font-mono font-bold hover:underline">TB-001</button>, <button onClick={() => onSearchNewTrace('TB-002')} className="text-blue-600 font-mono font-bold hover:underline">TB-002</button>, or <button onClick={() => onSearchNewTrace('TB-004')} className="text-blue-600 font-mono font-bold hover:underline">TB-004</button> from the presets menu.
+            You can load pre-indexed investigation benchmarks like <button onClick={() => onSearchNewTrace('TB-001')} className="text-blue-600 font-mono font-bold hover:underline">TB-001</button>, <button onClick={() => onSearchNewTrace('TB-002')} className="text-blue-600 font-mono font-bold hover:underline">TB-002</button>, or <button onClick={() => onSearchNewTrace('TB-004')} className="text-blue-600 font-mono font-bold hover:underline">TB-004</button> from the demo presets menu.
           </p>
         </div>
       </div>

@@ -8,13 +8,14 @@ import { RightNodeDrawer } from './RightNodeDrawer';
 import { RightEdgeDrawer } from './RightEdgeDrawer';
 import { EvidenceExplorerTab } from './EvidenceExplorerTab';
 import { CaseTimelineTab } from './CaseTimelineTab';
-import { FileCheck, Lock, Activity, ShieldCheck } from 'lucide-react';
+import { FileCheck, Lock, Activity, ShieldCheck, Scale } from 'lucide-react';
 
 interface TraceAnalysisScreenProps {
   activeCase: InvestigationCase;
   onOpenReport: () => void;
   onOpenLegalNotice: () => void;
   onOpenFreezeModal: () => void;
+  onOpenSahyogModal: () => void;
 }
 
 export const TraceAnalysisScreen: React.FC<TraceAnalysisScreenProps> = ({
@@ -22,6 +23,7 @@ export const TraceAnalysisScreen: React.FC<TraceAnalysisScreenProps> = ({
   onOpenReport,
   onOpenLegalNotice,
   onOpenFreezeModal,
+  onOpenSahyogModal,
 }) => {
   const [activeHopIndex, setActiveHopIndex] = useState(0);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -173,6 +175,14 @@ export const TraceAnalysisScreen: React.FC<TraceAnalysisScreenProps> = ({
 
           <div className="flex items-center space-x-2">
             <button
+              onClick={onOpenSahyogModal}
+              className="px-3.5 py-1.5 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-md shadow-2xs transition flex items-center space-x-1.5"
+            >
+              <Scale className="w-4 h-4 text-blue-200" />
+              <span>Prepare SAHYOG Request</span>
+            </button>
+
+            <button
               onClick={onOpenFreezeModal}
               className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 font-semibold rounded-md border border-rose-200 transition flex items-center space-x-1"
             >
@@ -189,7 +199,7 @@ export const TraceAnalysisScreen: React.FC<TraceAnalysisScreenProps> = ({
 
             <button
               onClick={onOpenReport}
-              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md shadow-2xs transition flex items-center space-x-1.5"
+              className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-md shadow-2xs transition flex items-center space-x-1.5"
             >
               <FileCheck className="w-4 h-4" />
               <span>Generate Report</span>
