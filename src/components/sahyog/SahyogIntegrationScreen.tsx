@@ -1,16 +1,22 @@
-import React, { useState } from 'react';
-import { MOCK_SAHYOG_ENDPOINTS, createSahyogPayload } from '../../engine/sahyog/sahyogService';
+import React, { useState, useEffect } from 'react';
+import { MOCK_SAHYOG_ENDPOINTS, fetchSahyogStatus, SahyogStatusResponse, createSahyogPayload } from '../../engine/sahyog/sahyogService';
 import { InvestigationCase } from '../../types';
-import { Code, Send, CheckCircle2 } from 'lucide-react';
+import { Code, Send, CheckCircle2, Scale, ShieldCheck, Download, Activity, FileText, Info } from 'lucide-react';
 
 interface SahyogIntegrationScreenProps {
   currentCase: InvestigationCase;
+  onOpenActionModal?: () => void;
 }
 
-export const SahyogIntegrationScreen: React.FC<SahyogIntegrationScreenProps> = ({ currentCase }) => {
+export const SahyogIntegrationScreen: React.FC<SahyogIntegrationScreenProps> = ({ currentCase, onOpenActionModal }) => {
   const [activeEndpointIndex, setActiveEndpointIndex] = useState(0);
   const [simulationResponse, setSimulationResponse] = useState<string | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [statusInfo, setStatusInfo] = useState<SahyogStatusResponse | null>(null);
+
+  useEffect(() => {
+    fetchSahyogStatus().then((s) => setStatusInfo(s));
+  }, []);
 
   const endpoint = MOCK_SAHYOG_ENDPOINTS[activeEndpointIndex];
   const sahyogPayload = createSahyogPayload(currentCase);
@@ -23,44 +29,96 @@ export const SahyogIntegrationScreen: React.FC<SahyogIntegrationScreenProps> = (
       setIsSimulating(false);
       setSimulationResponse(JSON.stringify({
         status: 'SUCCESS',
-        sahyogTraceId: `SAHYOG-LE-${Math.floor(10000 + Math.random() * 90000)}`,
+        sahyogTraceId: `DEMO-SHG-${Math.floor(10000 + Math.random() * 90000)}`,
         syncTimestamp: new Date().toISOString(),
+        caseReference: currentCase.caseReference,
         destinationVASP: sahyogPayload.nearestDirectDepositVASP,
         confidenceTier: sahyogPayload.confidenceTier,
         confidenceScore: sahyogPayload.confidenceScore,
         reportHashStamp: sahyogPayload.reportHash,
-        message: 'Case lead successfully synchronized into Law Enforcement Central Database.',
+        integrationMode: statusInfo?.mode || 'DEMO',
+        message: 'Case action request synchronized into SAHYOG Integration Gateway.',
       }, null, 2));
-    }, 800);
+    }, 600);
   };
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm flex items-center justify-between">
+      {/* Top Header & Action Banner */}
+      <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
             <span className="p-1.5 bg-blue-50 text-blue-700 rounded-md">
-              <Code className="w-5 h-5" />
+              <Scale className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-bold text-slate-900">SAHYOG Integration Prototype</h1>
-            <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-[10px] font-bold uppercase">
-              Prototype API Layer
+            <h1 className="text-xl font-bold text-slate-900">SAHYOG Gateway & Action Integration</h1>
+            <span className="px-2.5 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded text-[10px] font-bold uppercase font-mono">
+              {statusInfo?.statusText || 'SAHYOG DEMO MODE'}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Government workflow integration layer for seamless law-enforcement portal interoperability & disclosure requests
+            Law-enforcement action workflow for structured SAHYOG statutory notices (Sec 91/102 Cr.P.C. / BNSS) & evidence handoffs.
           </p>
         </div>
 
-        <button
-          onClick={handleSimulateWebhook}
-          disabled={isSimulating}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md shadow-sm transition flex items-center space-x-1.5"
-        >
-          <Send className="w-3.5 h-3.5" />
-          <span>{isSimulating ? 'Sending Payload...' : 'Test Sync Active Case'}</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          {onOpenActionModal && (
+            <button
+              onClick={onOpenActionModal}
+              className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold rounded-md shadow-sm transition flex items-center space-x-1.5"
+            >
+              <Scale className="w-4 h-4 text-blue-200" />
+              <span>Prepare SAHYOG Request</span>
+            </button>
+          )}
+
+          <button
+            onClick={handleSimulateWebhook}
+            disabled={isSimulating}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-md shadow-sm transition flex items-center space-x-1.5"
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>{isSimulating ? 'Sending Payload...' : 'Test Sync Active Case'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Integration Capabilities & Active Case Context */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+            Active Case Context
+          </span>
+          <span className="font-mono font-bold text-sm text-slate-900 block">{currentCase.caseReference}</span>
+          <span className="text-[11px] text-slate-500 font-mono truncate block mt-0.5">
+            Target: {currentCase.targetInput} ({currentCase.chain})
+          </span>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+            Destination VASP Match
+          </span>
+          <span className="font-bold text-sm text-blue-900 block truncate">
+            {currentCase.nearestDirectDepositVASP || currentCase.vaspDestination || 'Not Attributed'}
+          </span>
+          <span className="text-[11px] text-slate-500 block mt-0.5">
+            Confidence: {currentCase.confidenceScore || 86}% ({currentCase.confidenceTier || 'HIGHLY_LIKELY'})
+          </span>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+            Integration Gateway State
+          </span>
+          <span className="font-bold text-sm text-emerald-800 block flex items-center space-x-1">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>{statusInfo?.mode || 'DEMO'} MODE</span>
+          </span>
+          <span className="text-[11px] text-slate-500 block mt-0.5 truncate">
+            Endpoint: {statusInfo?.endpoint || 'http://localhost:3001/api/v1/sahyog/demo'}
+          </span>
+        </div>
       </div>
 
       {/* API Endpoint Documentation & Simulator */}
@@ -108,7 +166,7 @@ export const SahyogIntegrationScreen: React.FC<SahyogIntegrationScreenProps> = (
               <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1 font-sans">
                 Request Payload (Active Case: {currentCase.caseReference})
               </span>
-              <pre className="text-xs font-mono text-emerald-400 overflow-x-auto p-3 bg-slate-950/80 rounded border border-slate-800">
+              <pre className="text-xs font-mono text-emerald-400 overflow-x-auto p-3 bg-slate-950/80 rounded border border-slate-800 max-h-[300px]">
                 {JSON.stringify(sahyogPayload, null, 2)}
               </pre>
             </div>
