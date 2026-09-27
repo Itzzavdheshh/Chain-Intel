@@ -1,6 +1,6 @@
-import { ChainSightSettings } from '../../types';
+import { ChainIntelSettings } from '../../types';
 
-export const DEFAULT_SETTINGS: ChainSightSettings = {
+export const DEFAULT_SETTINGS: ChainIntelSettings = {
   appearance: {
     theme: 'light',
     density: 'comfortable',
@@ -39,7 +39,7 @@ export const DEFAULT_SETTINGS: ChainSightSettings = {
 
 const STORAGE_KEY = 'chain_intel_settings';
 
-export function loadSettings(): ChainSightSettings {
+export function loadSettings(): ChainIntelSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_SETTINGS;
@@ -57,7 +57,7 @@ export function loadSettings(): ChainSightSettings {
   }
 }
 
-export function saveSettings(settings: ChainSightSettings): void {
+export function saveSettings(settings: ChainIntelSettings): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     // Also sync theme setting into standalone theme key for backward compatibility
@@ -67,7 +67,7 @@ export function saveSettings(settings: ChainSightSettings): void {
   }
 }
 
-export function resetSettings(): ChainSightSettings {
+export function resetSettings(): ChainIntelSettings {
   try {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.setItem('chain_intel_theme', 'light');

@@ -1,4 +1,4 @@
-# 🛡️ CHAIN-INTEL (ChainSight)
+# 🛡️ CHAIN-INTEL
 
 <p align="center">
   <a href="https://chain-intel-jade.vercel.app" target="_blank">
@@ -155,5 +155,5 @@ node server/index.js
 
 <p align="center">
   <b>Ministry of Home Affairs — I4C / CIS Division • Smart India Hackathon 2026</b><br>
-  <i>ChainSight / CHAIN-INTEL Blockchain Intelligence Engine</i>
+  <i>CHAIN-INTEL Blockchain Intelligence Engine</i>
 </p>

@@ -18,12 +18,12 @@ import {
   Database,
   AlertTriangle
 } from 'lucide-react';
-import { ChainSightSettings } from '../../types/settings';
+import { ChainIntelSettings } from '../../types/settings';
 import { BlockchainType } from '../../types';
 
 interface SettingsScreenProps {
-  settings: ChainSightSettings;
-  onUpdateSettings: (newSettings: ChainSightSettings) => void;
+  settings: ChainIntelSettings;
+  onUpdateSettings: (newSettings: ChainIntelSettings) => void;
   onResetSettings: () => void;
 }
 
@@ -45,7 +45,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     setTimeout(() => setSavedToast(false), 2000);
   };
 
-  const updateAppearance = (patch: Partial<ChainSightSettings['appearance']>) => {
+  const updateAppearance = (patch: Partial<ChainIntelSettings['appearance']>) => {
     const updated = {
       ...settings,
       appearance: { ...settings.appearance, ...patch },
@@ -54,7 +54,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     showSaveNotification();
   };
 
-  const updateInvestigation = (patch: Partial<ChainSightSettings['investigation']>) => {
+  const updateInvestigation = (patch: Partial<ChainIntelSettings['investigation']>) => {
     const updated = {
       ...settings,
       investigation: { ...settings.investigation, ...patch },
@@ -63,7 +63,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     showSaveNotification();
   };
 
-  const updateAttribution = (patch: Partial<ChainSightSettings['attribution']>) => {
+  const updateAttribution = (patch: Partial<ChainIntelSettings['attribution']>) => {
     const updated = {
       ...settings,
       attribution: { ...settings.attribution, ...patch },
@@ -72,7 +72,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     showSaveNotification();
   };
 
-  const updateAlerts = (patch: Partial<ChainSightSettings['alerts']>) => {
+  const updateAlerts = (patch: Partial<ChainIntelSettings['alerts']>) => {
     const updated = {
       ...settings,
       alerts: { ...settings.alerts, ...patch },
@@ -81,7 +81,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     showSaveNotification();
   };
 
-  const updateSahyog = (patch: Partial<ChainSightSettings['sahyog']>) => {
+  const updateSahyog = (patch: Partial<ChainIntelSettings['sahyog']>) => {
     const updated = {
       ...settings,
       sahyog: { ...settings.sahyog, ...patch },
@@ -217,7 +217,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               <span>Appearance</span>
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Control the visual presentation and layout density of ChainSight.
+              Control the visual presentation and layout density of ChainIntel.
             </p>
           </div>
 
@@ -481,7 +481,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               <span>Attribution</span>
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Configure ChainSight's explainable attribution scoring engine and supporting evidence breakdown rules.
+              Configure ChainIntel's explainable attribution scoring engine and supporting evidence breakdown rules.
             </p>
           </div>
 
@@ -717,7 +717,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               <span>SAHYOG Integration Workflow</span>
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Represent ChainSight's law enforcement coordination integration for statutory request generation.
+              Represent ChainIntel's law enforcement coordination integration for statutory request generation.
             </p>
           </div>
 
@@ -925,7 +925,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 className="px-4 py-2 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 transition flex items-center space-x-2"
               >
                 <Info className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                <span>About ChainSight</span>
+                <span>About ChainIntel</span>
               </button>
             </div>
           </div>
@@ -940,7 +940,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase font-mono tracking-wider">
                 {activeModal === 'docs' && 'System Documentation & User Guide'}
                 {activeModal === 'privacy' && 'Privacy & Evidence Governance Policy'}
-                {activeModal === 'about' && 'About ChainSight Platform'}
+                {activeModal === 'about' && 'About ChainIntel Platform'}
               </h3>
               <button
                 onClick={() => setActiveModal(null)}
@@ -954,7 +954,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               {activeModal === 'docs' && (
                 <>
                   <p>
-                    <strong>ChainSight Platform Overview:</strong> ChainSight is an enterprise blockchain intelligence platform engineered for law enforcement cryptocurrency investigation workflows.
+                    <strong>ChainIntel Platform Overview:</strong> ChainIntel is an enterprise blockchain intelligence platform engineered for law enforcement cryptocurrency investigation workflows.
                   </p>
                   <p>
                     <strong>Key Workstation Engines:</strong>

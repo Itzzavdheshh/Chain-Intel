@@ -174,7 +174,7 @@ export function prepareSahyogRequest(caseData, options = {}) {
     },
     systemFields: {
       generatedAt: new Date().toISOString(),
-      systemVersion: 'ChainSight v3.0 - SAHYOG Module',
+      systemVersion: 'CHAIN-INTEL v3.0 - SAHYOG Module',
       isSystemGenerated: true,
     },
     investigatorEditableFields: {
@@ -262,7 +262,7 @@ export async function submitSahyogRequest(payload, options = {}) {
       {
         stage: 'REQUEST_PREPARED',
         timestamp: payload.systemFields.generatedAt,
-        actor: 'ChainSight Automated Intelligence Engine',
+        actor: 'CHAIN-INTEL Automated Intelligence Engine',
       },
       {
         stage: 'INVESTIGATOR_REVIEWED',
@@ -272,7 +272,7 @@ export async function submitSahyogRequest(payload, options = {}) {
       {
         stage: isDemo ? 'DEMO_DISPATCH' : 'LIVE_SAHYOG_GATEWAY_DISPATCH',
         timestamp,
-        actor: 'ChainSight SAHYOG Connector Adapter',
+        actor: 'CHAIN-INTEL SAHYOG Connector Adapter',
       },
     ],
   };

@@ -186,7 +186,7 @@ export async function prepareSahyogRequestClient(
     },
     systemFields: {
       generatedAt: new Date().toISOString(),
-      systemVersion: 'ChainSight v3.0 - SAHYOG Client',
+      systemVersion: 'CHAIN-INTEL v3.0 - SAHYOG Client',
       isSystemGenerated: true,
     },
     investigatorEditableFields: {

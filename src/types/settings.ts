@@ -45,7 +45,7 @@ export interface SahyogSettings {
   supportedRequestTypes: string[];
 }
 
-export interface ChainSightSettings {
+export interface ChainIntelSettings {
   appearance: AppearanceSettings;
   investigation: InvestigationSettings;
   attribution: AttributionSettings;

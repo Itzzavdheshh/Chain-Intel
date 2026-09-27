@@ -19,7 +19,7 @@ import { NotFoundScreen } from './components/common/NotFoundScreen';
 import { LegalNoticeModal } from './components/sahyog/LegalNoticeModal';
 import { FreezeRequestModal } from './components/sahyog/FreezeRequestModal';
 import { loadSettings, saveSettings, resetSettings } from './engine/settings/settingsStore';
-import { ChainSightSettings } from './types/settings';
+import { ChainIntelSettings } from './types/settings';
 
 import { DEMO_INVESTIGATION_CASES } from './demo/demoCases';
 import { InvestigationCase, BlockchainType } from './types';
@@ -48,9 +48,9 @@ export function App() {
   const [isSahyogActionModalOpen, setIsSahyogActionModalOpen] = useState(false);
   const [dataSourceMode, setDataSourceMode] = useState<'DEMO' | 'LIVE'>('DEMO');
 
-  const [settings, setSettings] = useState<ChainSightSettings>(() => loadSettings());
+  const [settings, setSettings] = useState<ChainIntelSettings>(() => loadSettings());
 
-  const handleUpdateSettings = (newSettings: ChainSightSettings) => {
+  const handleUpdateSettings = (newSettings: ChainIntelSettings) => {
     setSettings(newSettings);
     saveSettings(newSettings);
   };

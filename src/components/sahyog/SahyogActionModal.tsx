@@ -233,7 +233,7 @@ export const SahyogActionModal: React.FC<SahyogActionModalProps> = ({
                 <div>
                   <h4 className="font-bold text-blue-950 text-sm">Step 1: Target Identification & VASP Candidate Selection</h4>
                   <p className="text-blue-800 mt-1 leading-relaxed">
-                    ChainSight automatically populates the investigated target wallet, network, and candidate exchange destinations from live on-chain fund flows. Review the target attribution below.
+                    CHAIN-INTEL automatically populates the investigated target wallet, network, and candidate exchange destinations from live on-chain fund flows. Review the target attribution below.
                   </p>
                 </div>
               </div>
