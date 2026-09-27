@@ -1,4 +1,4 @@
-# 🛡️ CHAIN-INTEL
+# 🛡️ CHAIN-INTEL (ChainSight)
 
 <p align="center">
   <a href="https://chain-intel-jade.vercel.app" target="_blank">
@@ -6,33 +6,31 @@
   </a>
   <img src="https://img.shields.io/badge/SIH%202026-Problem%20Statement%2026182-blue?style=for-the-badge&logo=shield" alt="SIH 2026">
   <img src="https://img.shields.io/badge/Ministry%20of%20Home%20Affairs-I4C%20%2F%20CIS-navy?style=for-the-badge&logo=government" alt="MHA I4C">
+  <img src="https://img.shields.io/badge/Multi--Chain-6%20Supported%20Chains-emerald?style=for-the-badge&logo=link" alt="Multi-Chain">
   <img src="https://img.shields.io/badge/React-18%2B-61DAFB?style=for-the-badge&logo=react" alt="React">
   <img src="https://img.shields.io/badge/TypeScript-5.0%2B-3178C6?style=for-the-badge&logo=typescript" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Tailwind_CSS-v4.0-06B6D4?style=for-the-badge&logo=tailwindcss" alt="Tailwind CSS">
-  <img src="https://img.shields.io/badge/Cytoscape.js-Graph_Engine-orange?style=for-the-badge" alt="Cytoscape.js">
-  <img src="https://img.shields.io/badge/SHA--256-Chain__of__Custody-emerald?style=for-the-badge" alt="SHA-256">
+  <img src="https://img.shields.io/badge/SHA--256-Chain__of__Custody-purple?style=for-the-badge" alt="SHA-256">
 </p>
 
 > 🌐 **Live Web Application**: [https://chain-intel-jade.vercel.app](https://chain-intel-jade.vercel.app)
 
-### **Automated Blockchain Intelligence & Wallet-to-VASP Attribution Platform**
-> *"Every crypto trail ends somewhere. We find that end — automatically."*
+### **Automated Multi-Chain Blockchain Intelligence & VASP Attribution Engine**
+> *"Autonomous live multi-chain fund-flow tracing, VASP attribution, and LEA action routing built for law enforcement."*
 
 ---
 
 ## 📌 Executive Summary & Purpose
 
-**CHAIN-INTEL** is an investigator-facing blockchain forensic intelligence workstation engineered for law enforcement agencies, cybercrime investigators, and national security analysts under **Smart India Hackathon 2026 (Problem Statement 26182)** for the **Ministry of Home Affairs (I4C / CIS Division)**.
+**CHAIN-INTEL** is an enterprise-grade blockchain intelligence and forensic workstation engineered for law enforcement agencies, cybercrime investigators, and intelligence analysts under **Smart India Hackathon 2026 (Problem Statement 26182)** for the **Ministry of Home Affairs (I4C / CIS Division)**.
 
-When cybercrime or cryptocurrency fraud occurs, investigators are presented with an anonymous unhosted wallet address or transaction hash. Manually analyzing thousands of complex, multi-hop, cross-chain transfers is time-prohibitive. **CHAIN-INTEL** automates this process:
+When cryptocurrency fraud or financial cybercrime occurs, investigators face anonymous wallet addresses across multiple blockchain networks. **CHAIN-INTEL** automates end-to-end investigation:
 
-1. **Auto-Detects Blockchain Network** across Bitcoin, Ethereum, Tron, BNB Chain, Solana, and Polygon.
-2. **Traces Transferred Funds Hop-by-Hop** through intermediate unhosted wallets, peel chains, bridges, and mixers.
-3. **Classifies On-Chain Entities** into Exchange Deposit Wallets, Exchange Hot Wallets, Exchange Clusters, DeFi Bridges, and Privacy Mixers.
-4. **Isolates Nearest Direct-Deposit Accepting VASP** with an explainable evidence score.
-5. **Detects Suspicious Risk Typologies** (Ransomware, Darknet proceeds, Terrorism Financing indicators, Phishing fraud).
-6. **Generates Forensically Stamped Reports** with deterministic SHA-256 chain-of-custody hashes.
-7. **Routes Law Enforcement Orders** via Section 91 Cr.P.C. / BNSS Disclosure Requests and Section 102 Cr.P.C. / BNSS Account Freeze Orders.
+1. **Automatic Network Resolution**: Auto-detects target blockchains (Ethereum, Polygon, BNB Smart Chain, Solana, TRON, Bitcoin) without requiring manual network selection.
+2. **Live Multi-Chain RPC Engine**: Queries live blockchain data via secure backend providers (Alchemy, TronGrid, Mempool/Blockchain.info) with server-side API key protection and zero mock data fallbacks in LIVE mode.
+3. **Bounded Recursive Tracing**: Executes multi-hop Breadth-First Search (BFS) graph traversal with cycle prevention and duplicate detection.
+4. **Nearest Direct-Deposit VASP Attribution**: Isolates exchange deposit wallets, hot wallets, clusters, bridges, and mixers with transparent scoring.
+5. **Interactive Visualization**: Interactive Cytoscape.js fund-flow graph, timeline, and hop playback player.
+6. **SAHYOG Integration**: Integrates directly with SAHYOG workflows to draft Section 91 Cr.P.C. / BNSS Disclosure Requests and Section 102 Cr.P.C. / BNSS Account Freeze Orders stamped with cryptographic SHA-256 chain-of-custody hashes.
 
 ---
 
@@ -44,48 +42,41 @@ When cybercrime or cryptocurrency fraud occurs, investigators are presented with
 | **Organization** | **Ministry of Home Affairs (MHA) — Indian Cyber Crime Coordination Centre (I4C) / CIS Division** |
 | **Theme** | **Blockchain & Cybersecurity** |
 | **Category** | **Software** |
-| **Core Objective** | Automated unhosted/unknown cryptocurrency wallet tracing, multi-chain graph analysis, nearest direct-deposit VASP attribution, risk typology detection, and law enforcement workflow routing. |
+| **Core Objective** | Multi-chain live tracing, automated network resolution, bounded recursive fund-flow graph analysis, VASP attribution, risk typology detection, and SAHYOG law enforcement action workflow. |
 
 ---
 
-## ⚡ Key System Capabilities
+## ⚡ Core Capabilities & Architecture
 
-### 1. 🎯 Nearest Direct-Deposit Accepting VASP Attribution Engine
-Instead of merely indicating that funds eventually reached a distant exchange, **CHAIN-INTEL** explicitly ranks and isolates the **Nearest Direct-Deposit Accepting VASP**.
-- **5 Attribution Tiers**: `CONFIRMED (95%+)`, `HIGHLY LIKELY (>85%)`, `PROBABLE (60-85%)`, `POSSIBLE (30-60%)`, `INSUFFICIENT DATA (<30%)`.
-- **Explainable Scoring**: Transparent mathematical factor breakdown showing base score, hop distance penalties, direct deposit bonuses, and typology adjustments.
+### 1. 🌐 Multi-Chain Intelligence Engine (6 Networks)
+Fully audited and validated live tracing across 6 major blockchain ecosystems:
+- **Ethereum (ETH)**: ERC-20 & native transfer tracing via Alchemy.
+- **Polygon (MATIC)**: Layer-2 bridge and token transfer tracing via Polygon Mainnet RPC.
+- **BNB Smart Chain (BSC)**: High-frequency BEP-20 and BNB transfer tracing via zero-dependency RPC block scanner.
+- **Solana (SOL)**: High-speed SPL token and account activity tracing via Alchemy Solana Mainnet RPC.
+- **TRON (TRX)**: TRC-20 USDT transfer tracing via TronGrid & TronScan APIs.
+- **Bitcoin (BTC)**: UTXO flow and multi-input/output transaction tracing via Blockchain.info & Mempool APIs.
 
-### 2. 🌐 Multi-Chain Forensic Architecture
-Supported across 6 major blockchain networks with unified data normalization:
-- **Bitcoin (BTC)**: UTXO re-consolidation & CoinJoin mixer analysis.
-- **Ethereum (EVM)**: ERC-20 token tracking & smart contract interaction.
-- **Tron (TRC-20)**: High-frequency USDT stablecoin outflow analysis.
-- **BNB Chain**: BSC token transfers & instant exchange routing.
-- **Solana (SOL)**: High-speed SPL token tracking.
-- **Polygon**: Cross-chain L2 bridge transaction tracing.
+### 2. 🔍 Automatic Network Resolution & Address Disambiguation
+- **No Manual Chain Selection Required**: Investigators paste a wallet address; the system resolves applicable networks dynamically.
+- **Multi-Network Detection**: Identifies cross-chain EVM address collisions (`ethereum:0x...` vs `polygon:0x...` vs `bsc:0x...`) without arbitrary network bias.
+- **Settings Independence**: Workstation preferences customize defaults without overriding live chain resolution.
 
-### 3. 🕸️ Investigative Cytoscape Graph & Sequential Playback
-- **Hierarchical Layout**: Cytoscape.js dagre-powered interactive transaction graph.
-- **Entity Node Styling**: Distinct visual shapes for `EXCHANGE_DEPOSIT_WALLET`, `EXCHANGE_HOT_WALLET`, `EXCHANGE_CLUSTER`, `MIXER_TUMBLER`, `DEFI_BRIDGE`, `CROSS_CHAIN_SWAP_SERVICE`, and `UNHOSTED_WALLET`.
-- **Hop Trace Playback**: Interactive step-by-step sequential playback player with speed controls (1x, 2x, 4x) and hop details drawer.
+### 3. 🎯 Nearest Direct-Deposit VASP Attribution
+Isolates the exact Exchange Deposit Wallet and Exchange Cluster through explainable confidence scores:
+- **5 Confidence Tiers**: `CONFIRMED (95%+)`, `HIGHLY LIKELY (>85%)`, `PROBABLE (60-85%)`, `POSSIBLE (30-60%)`, `INSUFFICIENT DATA (<30%)`.
+- **Explainable Factor Breakdown**: Base score, hop distance attenuation, direct deposit bonuses, and risk typology adjustments.
 
-### 4. 🚨 High-Risk Intelligence Alerts & SIH Scenarios
-Pre-loaded crime investigation scenarios ready for live judge demonstrations:
-- **TB-001 (Investment Fraud)**: Ethereum -> 3-hop peel chain -> CoinDCX Direct Deposit (91% Highly Likely).
-- **TB-002 (Healthcare Ransomware Extortion)**: Ethereum -> BlackCat ransomware outflow -> Binance Hot Wallet (87%).
-- **TB-003 (Darknet Market Proceeds)**: Bitcoin -> Wasabi CoinJoin -> WazirX Deposit (78% Probable).
-- **TB-004 (Terrorism-Financing Risk Indicator)**: Tron TRC-20 -> USDT Cluster -> Exchange Deposit (84%).
-- **TB-005 (Cross-Chain DeFi Exploit)**: Ethereum -> Synapse Bridge -> Polygon -> FixedFloat Swap (64%).
-- **TB-006 (Sanctioned Privacy Mixer Wash)**: Ethereum -> Tornado Cash 100 ETH contract (24% Insufficient Data).
+### 4. 🕸️ Interactive Cytoscape Graph & Hop Playback
+- **Cytoscape.js Engine**: Interactive dagre hierarchical layout with node/edge drawers for detailed inspection.
+- **Node Classification Styling**: Distinct visual icons for `EXCHANGE_DEPOSIT_WALLET`, `EXCHANGE_HOT_WALLET`, `EXCHANGE_CLUSTER`, `MIXER_TUMBLER`, `DEFI_BRIDGE`, and `UNHOSTED_WALLET`.
+- **Sequential Hop Playback**: Step-by-step playback player with 1x, 2x, 4x speed controls.
 
-### 5. ⚖️ Law Enforcement Workflow & Legal Notice Drafts
-- **Section 91 Cr.P.C. / BNSS 2023**: Auto-generated formal Disclosure Request for KYC/AML and fiat transfer logs.
-- **Section 102 Cr.P.C. / BNSS 2023**: Auto-generated Asset Restraint / Account Freeze Order to prevent crime proceeds diversion.
-- **SAHYOG Integration Prototype**: Mock REST API endpoints (`POST /api/v1/sahyog/investigations`, `GET /api/v1/sahyog/traces/:id`, `POST /api/v1/sahyog/disclosure-notice`) with live payload simulator.
-
-### 6. 🔒 Cryptographic SHA-256 Report Integrity
-- Every generated investigation report receives a deterministic SHA-256 chain-of-custody stamp.
-- Includes a standalone **Report Integrity Verification Tool** to check report authenticity against an append-only local audit ledger.
+### 5. ⚖️ SAHYOG Integration & Legal Notice Routing
+- **Section 91 Cr.P.C. / BNSS 2023**: Auto-generated formal Disclosure Request for KYC/AML and bank transaction logs.
+- **Section 102 Cr.P.C. / BNSS 2023**: Auto-generated Asset Restraint / Account Freeze Order.
+- **SAHYOG Workflow**: One-click request preparation, officer authorization, and JSON payload export.
+- **SHA-256 Chain-of-Custody**: Cryptographic integrity stamping for every generated investigation report.
 
 ---
 
@@ -93,102 +84,76 @@ Pre-loaded crime investigation scenarios ready for live judge demonstrations:
 
 ```mermaid
 graph TD
-    A["Investigator Input (Wallet / Tx Hash)"] --> B["Chain Auto-Detection & Adapter"]
-    B --> C1["Ethereum / EVM Adapter"]
-    B --> C2["Bitcoin UTXO Adapter"]
-    B --> C3["Tron TRC-20 Adapter"]
-    B --> C4["BNB / Polygon / Solana Adapters"]
+    A["Investigator Input (Wallet / Address)"] --> B["Automatic Network Resolver"]
     
-    C1 & C2 & C3 & C4 --> D["Tracing & Flow Normalization Engine"]
-    D --> E["Cytoscape.js Graph Construction"]
-    D --> F["Entity Classification Engine"]
-    
-    F --> F1["Exchange Deposit Wallet"]
-    F --> F2["Exchange Hot Wallet"]
-    F --> F3["Exchange Cluster"]
-    F --> F4["DeFi Bridge / Swap"]
-    F --> F5["Mixer / Tumbler"]
+    B --> C1["Ethereum Adapter"]
+    B --> C2["Polygon Adapter"]
+    B --> C3["BNB Chain Adapter"]
+    B --> C4["Solana Adapter"]
+    B --> C5["TRON Adapter"]
+    B --> C6["Bitcoin UTXO Adapter"]
 
-    F1 & F2 & F3 --> G["VASP Intelligence Database"]
-    G --> H["Explainable Scoring Engine"]
-    H --> I["Attribution Confidence Ladder (>85% Highly Likely)"]
+    C1 & C2 & C3 & C4 & C5 & C6 --> D["Multi-Chain Normalization Engine"]
     
-    I --> J["Investigator's Story (Plain-Language Narrative)"]
-    I --> K["SHA-256 Chain-of-Custody Report Generator"]
-    
-    K --> L1["Section 91 Cr.P.C. Disclosure Request"]
-    K --> L2["Section 102 Cr.P.C. Account Freeze Order"]
-    K --> L3["SAHYOG API Payload Generator"]
+    D --> E["Bounded Recursive BFS Tracer"]
+    E --> F1["Cytoscape.js Fund-Flow Graph"]
+    E --> F2["Interactive Timeline & Hop Playback"]
+    E --> F3["VASP Attribution & Risk Scoring"]
+
+    F3 --> G["Investigator Action Panel"]
+    G --> H1["Section 91 Cr.P.C. / BNSS Disclosure Notice"]
+    G --> H2["Section 102 Cr.P.C. / BNSS Account Freeze Order"]
+    G --> H3["SAHYOG API Payload & SHA-256 Stamped Report"]
 ```
 
 ---
 
-## 💻 Tech Stack & Libraries
+## 💻 Tech Stack
 
-- **Frontend Framework**: React 18+ with Vite
-- **Programming Language**: TypeScript
-- **Styling & UI**: Custom CSS Tokens + Tailwind CSS v4.0 (Light-First Government Workstation Aesthetic)
-- **Iconography**: Lucide React
-- **Graph Visualization**: Cytoscape.js + Cytoscape-Dagre Hierarchical Layout Engine
-- **Cryptographic Hashing**: Web Crypto API (Native SHA-256)
-- **Document Output**: HTML5 Printable Report & PDF Preview Engine
+- **Frontend**: React 18, Vite, TypeScript, Custom CSS Tokens + Tailwind CSS v4.0
+- **Graph & Visuals**: Cytoscape.js, Cytoscape-Dagre, Lucide Icons
+- **Backend API Proxy**: Node.js Express server (`server/index.js`) for server-side key protection
+- **Blockchain Providers**: Alchemy (ETH/Polygon/Solana), TronGrid (TRON), Blockchain.info/Mempool (Bitcoin), Public BSC RPC
+- **Deployment**: Vercel
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Installation & Local Development
 
-### Prerequisites
-- Node.js `v18.0.0` or higher
-- npm `v9.0.0` or higher
-
-### Installation & Local Setup
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/your-org/chain-intel.git
-   cd chain-intel
-   ```
-
-2. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Launch Local Workstation Dev Server**:
-   ```bash
-   npm run dev
-   ```
-
-4. **Access Workstation**:
-   Open your browser and navigate to `http://localhost:5173/`.
-
-### Production Build & Compilation Check
+### 1. Clone & Install
 ```bash
-npm run build
+git clone https://github.com/your-org/chain-intel.git
+cd chain-intel
+npm install
+```
+
+### 2. Environment Configuration
+Create `.env.local` for server-side keys:
+```env
+ALCHEMY_API_KEY=your_alchemy_api_key
+TRONGRID_API_KEY=your_trongrid_api_key
+PORT=3001
+```
+
+### 3. Run Dev Server & Backend Proxy
+```bash
+# Start Vite Frontend
+npm run dev
+
+# Start Node Backend Server Proxy
+node server/index.js
 ```
 
 ---
 
-## 🎨 Design Philosophy & UX Principles
+## 🎨 Design Philosophy & UX
 
-CHAIN-INTEL follows strict **Government Workstation Visual Guidelines**:
-- **Light-First Palette**: Off-white background (`#F8FAFC`), crisp white panels (`#FFFFFF`), subtle slate borders (`#E2E8F0`), deep navy branding (`#0F172A`), and clean sans-serif typography (Inter).
-- **Restrained Semantic Colors**: Green for verified/safe, Amber for caution/typology, Red for critical risk only.
-- **NO Cyberpunk Tropes**: Strictly avoids neon colors, glowing cards, black hacker backgrounds, or Web3 crypto-bro aesthetics. Evaluated for maximum credibility before government technology judges.
-
----
-
-## ⚠️ Data Provenance & Legal Disclaimer
-
-> [!IMPORTANT]
-> **CHAIN-INTEL** is strictly an **INVESTIGATIVE LEAD PLATFORM**.
-> - All inferences explicitly demarcate **KNOWN FACT**, **INFERENCE**, and **UNCERTAIN / INSUFFICIENT DATA**.
-> - It **NEVER** claims legal proof of criminality, confirmed human identities, or black-box ML magic.
-> - Every attribution provides an investigative lead that requires independent verification via official VASP disclosure notices and legal process prior to formal judicial submission.
+- **Government Workstation Aesthetic**: Clean light-first interface (`#F8FAFC`), deep navy branding (`#0F172A`), crisp white containers, and high contrast typography (Inter).
+- **No Hacker Tropes**: Strictly avoids distracting neon colors, black backgrounds, or dark-mode cyber themes to ensure maximum institutional credibility before law enforcement evaluators.
 
 ---
 
 <p align="center">
   <b>Ministry of Home Affairs — I4C / CIS Division • Smart India Hackathon 2026</b><br>
-  <i>Built with Precision for Law Enforcement & Cybersecurity Evaluators</i>
+  <i>ChainSight / CHAIN-INTEL Blockchain Intelligence Engine</i>
 </p>
