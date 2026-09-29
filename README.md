@@ -13,6 +13,7 @@
 </p>
 
 > 🌐 **Live Web Application**: [https://chain-intel-jade.vercel.app](https://chain-intel-jade.vercel.app)
+---
 > **YouTube Video Link**: [https://youtu.be/6p2G1y1ZrsY?si=oBYsD1XLPW4AkvJM](https://youtu.be/6p2G1y1ZrsY?si=oBYsD1XLPW4AkvJM)
 
 ### **Automated Multi-Chain Blockchain Intelligence & VASP Attribution Engine**
