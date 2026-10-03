@@ -1,408 +1,209 @@
-import React, { useState } from "react";
-import { InvestigationCase, ServiceMatchResult, TypologyFinding } from "../../types";
-import {
-  ShieldAlert,
-  Flame,
-  Shuffle,
-  ArrowRightLeft,
-  Activity,
-  Info,
-  ExternalLink,
-  Filter,
-  FileCheck,
-} from "lucide-react";
+import React from "react";
+import { InvestigationCase, VASPEvaluationResult } from "../../types";
+import { ShieldAlert, Building2, Wallet, ArrowRightLeft, Layers, AlertCircle, FileCheck, CheckCircle2 } from "lucide-react";
 
 interface FindingsTabProps {
-  currentCase: InvestigationCase;
-  onSelectNode?: (nodeId: string) => void;
+  caseData: InvestigationCase;
+  onSelectNodeByAddress?: (address: string) => void;
 }
 
-export const FindingsTab: React.FC<FindingsTabProps> = ({ currentCase, onSelectNode }) => {
-  const [filterType, setFilterType] = useState<string>("ALL");
+export const FindingsTab: React.FC<FindingsTabProps> = ({ caseData, onSelectNodeByAddress }) => {
+  const serviceFindings = caseData.serviceFindings || [];
+  const typologyFindings = caseData.typologyFindings || [];
+  const vaspEvaluations = (caseData.vaspEvaluations || caseData.nodes.filter((n) => n.vaspEvaluation?.isAttributed).map((n) => n.vaspEvaluation!)).filter(Boolean);
 
-  const typologyFindings: TypologyFinding[] = currentCase.typologyFindings || [];
-  const classifiedNodes = currentCase.nodes.filter(
-    (n) => n.serviceType && n.serviceType !== "UNKNOWN"
-  );
+  const mixers = serviceFindings.filter((s) => s.serviceType === "MIXER" || s.serviceType === "TUMBLER");
+  const bridges = serviceFindings.filter((s) => s.serviceType === "BRIDGE");
+  const swaps = serviceFindings.filter((s) => s.serviceType === "SWAP_SERVICE");
 
-  const mixerFindings = classifiedNodes.filter((n) => n.serviceType === "MIXER" || n.type === "MIXER_TUMBLER");
-  const bridgeFindings = classifiedNodes.filter((n) => n.serviceType === "BRIDGE" || n.type === "DEFI_BRIDGE");
-  const swapFindings = classifiedNodes.filter((n) => n.serviceType === "SWAP_SERVICE" || n.type === "SWAP_SERVICE");
-
-  const totalFindings = classifiedNodes.length + typologyFindings.length;
+  const depositWallets = vaspEvaluations.filter((v) => v.primaryRole === "DEPOSIT_WALLET");
+  const hotWallets = vaspEvaluations.filter((v) => v.primaryRole === "HOT_WALLET" || v.roleStatus === "HOT_WALLET_INDICATOR");
+  const coldWallets = vaspEvaluations.filter((v) => v.primaryRole === "COLD_WALLET" || v.roleStatus === "COLD_WALLET_INDICATOR");
 
   return (
-    <div className="h-full overflow-y-auto bg-slate-900/40 p-4 text-slate-100 space-y-6">
-      {/* Header Summary Card */}
-      <div className="bg-slate-800/80 border border-slate-700/80 rounded-xl p-5 shadow-lg backdrop-blur-sm">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-700/60 pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-amber-400" />
-              <h2 className="text-lg font-bold text-white tracking-wide">
-                Investigator Findings & Service Intelligence
-              </h2>
+    <div className="space-y-6 font-sans">
+      {/* Header Bar */}
+      <div className="bg-slate-900 text-white rounded-lg p-5 border border-slate-800 shadow-md">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-blue-600/20 border border-blue-500/40 rounded-md">
+              <Building2 className="w-6 h-6 text-blue-400" />
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Evidence-backed service classifications, exposure tracking, and deterministic behavioral typology indicators.
-            </p>
+            <div>
+              <h2 className="text-lg font-bold">Investigator Findings & Intelligence Synthesis</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                VASP Attribution, Deposit Wallet Intelligence, Service Classification & Behavioral Typology Analysis
+              </p>
+            </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs px-3 py-1 rounded-full bg-slate-700/60 text-slate-300 font-mono border border-slate-600/50">
-              Total Indicators: <strong className="text-amber-400 font-semibold">{totalFindings}</strong>
-            </span>
-            <span className="text-xs px-3 py-1 rounded-full bg-cyan-950/60 text-cyan-300 font-mono border border-cyan-800/50">
-              Data Source: {currentCase.dataSource || "LIVE"}
-            </span>
+          <div className="flex items-center space-x-2 text-xs font-mono font-bold bg-slate-950 px-3 py-1.5 rounded border border-slate-800">
+            <span className="text-emerald-400">{vaspEvaluations.length} VASP Matches</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-amber-400">{serviceFindings.length} Services</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-rose-400">{typologyFindings.length} Typology Flags</span>
           </div>
-        </div>
-
-        {/* Filter controls */}
-        <div className="flex items-center gap-2 mt-4 pt-1 text-xs">
-          <span className="text-slate-400 flex items-center gap-1 font-medium">
-            <Filter className="w-3.5 h-3.5" /> Filter View:
-          </span>
-          {["ALL", "MIXER", "BRIDGE", "SWAP", "TYPOLOGY"].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilterType(f)}
-              className={`px-3 py-1 rounded-md transition-colors font-mono ${
-                filterType === f
-                  ? "bg-cyan-600 text-white font-medium shadow-sm"
-                  : "bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
         </div>
       </div>
 
-      {/* 1. MIXER & TUMBLER EXPOSURE SECTION */}
-      {(filterType === "ALL" || filterType === "MIXER") && (
-        <section className="space-y-3">
-          <div className="flex items-center justify-between border-b border-rose-900/40 pb-2">
-            <div className="flex items-center gap-2 text-rose-400 font-semibold text-sm">
-              <Flame className="w-4 h-4 text-rose-400" />
-              <span>Mixer / Tumbler Exposure Findings</span>
-              <span className="text-xs font-mono bg-rose-950 text-rose-300 px-2 py-0.5 rounded-full border border-rose-800/50">
-                {mixerFindings.length}
-              </span>
-            </div>
-            <span className="text-xs text-slate-500 italic">
-              Direct vs. Indirect Exposure Differentiated
-            </span>
+      {/* 1. VASP ATTRIBUTIONS CARD */}
+      <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center space-x-2">
+            <Building2 className="w-5 h-5 text-emerald-600" />
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+              1. VASP & Exchange Attributions ({vaspEvaluations.length})
+            </h3>
           </div>
-
-          {mixerFindings.length === 0 ? (
-            <div className="bg-slate-800/40 border border-slate-800 rounded-lg p-4 text-center text-xs text-slate-400">
-              No known privacy mixer or tumbler exposure identified in this trace.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3">
-              {mixerFindings.map((node) => {
-                const isDirect = node.exposureMode === "DIRECT";
-                return (
-                  <div
-                    key={node.id}
-                    className="bg-slate-800/90 border border-rose-800/60 rounded-xl p-4 space-y-3 hover:border-rose-500/80 transition-all shadow-md"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`px-2.5 py-1 rounded font-mono font-bold text-xs ${
-                            isDirect
-                              ? "bg-rose-600 text-white animate-pulse"
-                              : "bg-amber-600/30 text-amber-300 border border-amber-500/40"
-                          }`}
-                        >
-                          {isDirect ? "DIRECT INTERACTION" : "INDIRECT / DOWNSTREAM EXPOSURE"}
-                        </span>
-                        <span className="text-sm font-semibold text-rose-200">
-                          {node.serviceName || node.label || "Known Mixer Protocol"}
-                        </span>
-                      </div>
-                      <span className="text-xs px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-700 font-mono">
-                        Hop #{node.hop || 1}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs bg-slate-900/60 p-3 rounded-lg border border-slate-800 font-mono">
-                      <div>
-                        <span className="text-slate-500">Node Address:</span>{" "}
-                        <button
-                          onClick={() => onSelectNode && onSelectNode(node.id)}
-                          className="text-cyan-400 hover:underline inline-flex items-center gap-1 font-mono"
-                        >
-                          {node.address || node.id} <ExternalLink className="w-3 h-3" />
-                        </button>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Service Category:</span>{" "}
-                        <span className="text-slate-200">{node.serviceDetails?.category || "CoinJoin / Privacy Protocol"}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Provenance Source:</span>{" "}
-                        <span className="text-amber-400">{node.provenanceSource || "CURATED_INTELLIGENCE"}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Sanction Status:</span>{" "}
-                        <span className={node.serviceDetails?.isSanctioned ? "text-rose-400 font-bold" : "text-emerald-400"}>
-                          {node.serviceDetails?.isSanctioned ? "SANCTIONED ENTITY" : "NON-SANCTIONED PROTOCOL"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-slate-300 bg-slate-900/40 p-2.5 rounded border border-slate-800/80 leading-relaxed">
-                      <strong className="text-slate-400">Observed Blockchain Finding:</strong>{" "}
-                      {node.serviceDetails?.explanation ||
-                        "Address matches known non-custodial privacy mixer infrastructure pattern in intelligence database."}
-                    </p>
-
-                    {node.serviceDetails?.disclaimer && (
-                      <div className="text-[11px] text-amber-400/90 bg-amber-950/30 border border-amber-800/40 p-2 rounded flex items-start gap-1.5">
-                        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                        <span>{node.serviceDetails.disclaimer}</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* 2. BRIDGE INTERACTION FINDINGS */}
-      {(filterType === "ALL" || filterType === "BRIDGE") && (
-        <section className="space-y-3">
-          <div className="flex items-center justify-between border-b border-cyan-900/40 pb-2">
-            <div className="flex items-center gap-2 text-cyan-400 font-semibold text-sm">
-              <ArrowRightLeft className="w-4 h-4 text-cyan-400" />
-              <span>Cross-Chain Bridge Interactions</span>
-              <span className="text-xs font-mono bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-800/50">
-                {bridgeFindings.length}
-              </span>
-            </div>
-            <span className="text-xs text-slate-500 italic">
-              Unestablished destination correlation flagged appropriately
-            </span>
-          </div>
-
-          {bridgeFindings.length === 0 ? (
-            <div className="bg-slate-800/40 border border-slate-800 rounded-lg p-4 text-center text-xs text-slate-400">
-              No cross-chain bridge interactions detected in this trace path.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3">
-              {bridgeFindings.map((node) => (
-                <div
-                  key={node.id}
-                  className="bg-slate-800/90 border border-cyan-800/60 rounded-xl p-4 space-y-3 hover:border-cyan-500/80 transition-all shadow-md"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-1 rounded bg-cyan-600/30 text-cyan-200 border border-cyan-500/40 font-mono font-bold text-xs">
-                        BRIDGE CONTRACT INTERACTION
-                      </span>
-                      <span className="text-sm font-semibold text-cyan-200">
-                        {node.serviceName || node.label || "Known Bridge Protocol"}
-                      </span>
-                    </div>
-                    <span className="text-xs px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-700 font-mono">
-                      Chain: {node.chain}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs bg-slate-900/60 p-3 rounded-lg border border-slate-800 font-mono">
-                    <div>
-                      <span className="text-slate-500">Bridge Address/Contract:</span>{" "}
-                      <button
-                        onClick={() => onSelectNode && onSelectNode(node.id)}
-                        className="text-cyan-400 hover:underline inline-flex items-center gap-1 font-mono"
-                      >
-                        {node.address || node.id} <ExternalLink className="w-3 h-3" />
-                      </button>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Source Network:</span>{" "}
-                      <span className="text-slate-200">{node.chain}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Provenance Source:</span>{" "}
-                      <span className="text-cyan-400">{node.provenanceSource || "CURATED_INTELLIGENCE"}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Cross-Chain Correlation:</span>{" "}
-                      <span className="text-amber-400 font-semibold">Unestablished</span>
-                    </div>
-                  </div>
-
-                  <div className="text-[11px] text-amber-300/90 bg-amber-950/30 border border-amber-800/40 p-2.5 rounded flex items-start gap-1.5">
-                    <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
-                    <span>
-                      {node.serviceDetails?.disclaimer ||
-                        "Bridge interaction detected; destination-side cross-chain continuation is unestablished unless corroborated by multi-chain tracing."}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* 3. SWAP-SERVICE FINDINGS */}
-      {(filterType === "ALL" || filterType === "SWAP") && (
-        <section className="space-y-3">
-          <div className="flex items-center justify-between border-b border-purple-900/40 pb-2">
-            <div className="flex items-center gap-2 text-purple-400 font-semibold text-sm">
-              <Shuffle className="w-4 h-4 text-purple-400" />
-              <span>Swap Service / DEX Router Interactions</span>
-              <span className="text-xs font-mono bg-purple-950 text-purple-300 px-2 py-0.5 rounded-full border border-purple-800/50">
-                {swapFindings.length}
-              </span>
-            </div>
-            <span className="text-xs text-slate-500 italic">
-              Normal liquidity swap vs. Non-KYC instant swap distinction
-            </span>
-          </div>
-
-          {swapFindings.length === 0 ? (
-            <div className="bg-slate-800/40 border border-slate-800 rounded-lg p-4 text-center text-xs text-slate-400">
-              No swap service interactions identified in trace.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3">
-              {swapFindings.map((node) => (
-                <div
-                  key={node.id}
-                  className="bg-slate-800/90 border border-purple-800/60 rounded-xl p-4 space-y-3 hover:border-purple-500/80 transition-all shadow-md"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-1 rounded bg-purple-600/30 text-purple-200 border border-purple-500/40 font-mono font-bold text-xs">
-                        SWAP SERVICE
-                      </span>
-                      <span className="text-sm font-semibold text-purple-200">
-                        {node.serviceName || node.label || "Known Swap Service"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs bg-slate-900/60 p-3 rounded-lg border border-slate-800 font-mono">
-                    <div>
-                      <span className="text-slate-500">Contract / Address:</span>{" "}
-                      <span className="text-cyan-400">{node.address || node.id}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Category:</span>{" "}
-                      <span className="text-slate-200">{node.serviceDetails?.category || "Automated Swap Router"}</span>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-slate-300 bg-slate-900/40 p-2.5 rounded border border-slate-800 leading-relaxed">
-                    {node.serviceDetails?.explanation || "Instant swap transaction router interaction identified."}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* 4. DETERMINISTIC BEHAVIORAL TYPOLOGY INDICATORS */}
-      {(filterType === "ALL" || filterType === "TYPOLOGY") && (
-        <section className="space-y-3">
-          <div className="flex items-center justify-between border-b border-indigo-900/40 pb-2">
-            <div className="flex items-center gap-2 text-indigo-400 font-semibold text-sm">
-              <Activity className="w-4 h-4 text-indigo-400" />
-              <span>Behavioral Typology Indicators</span>
-              <span className="text-xs font-mono bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-800/50">
-                {typologyFindings.length}
-              </span>
-            </div>
-            <span className="text-xs text-slate-500 italic">
-              Deterministic rule evaluation — Not an automated criminality score
-            </span>
-          </div>
-
-          {typologyFindings.length === 0 ? (
-            <div className="bg-slate-800/40 border border-slate-800 rounded-lg p-4 text-center text-xs text-slate-400">
-              No specific behavioral indicators triggered for this set of trace transactions.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3">
-              {typologyFindings.map((tf) => {
-                const isHigh = tf.severity === "HIGH" || tf.severity === "CRITICAL";
-                return (
-                  <div
-                    key={tf.id}
-                    className="bg-slate-800/90 border border-indigo-800/60 rounded-xl p-4 space-y-3 hover:border-indigo-500/80 transition-all shadow-md"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`px-2.5 py-0.5 rounded font-mono font-bold text-xs ${
-                              isHigh
-                                ? "bg-rose-950 text-rose-300 border border-rose-800/60"
-                                : "bg-amber-950 text-amber-300 border border-amber-800/60"
-                            }`}
-                          >
-                            [{tf.ruleId}] {tf.code}
-                          </span>
-                          <h4 className="text-sm font-semibold text-white">{tf.title}</h4>
-                        </div>
-                      </div>
-                      <span className="text-xs px-2.5 py-1 rounded bg-slate-900 text-slate-400 border border-slate-700 font-mono">
-                        Source: {tf.provenanceSource}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                      <strong className="text-indigo-300 font-medium">Observed Behavior:</strong>{" "}
-                      {tf.explanation}
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs bg-slate-900/40 p-2.5 rounded border border-slate-800 font-mono text-slate-400">
-                      <div>
-                        <span className="text-slate-500">Observed Value:</span>{" "}
-                        <span className="text-slate-200">{tf.observedValue}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Threshold Used:</span>{" "}
-                        <span className="text-slate-200">{tf.thresholdUsed}</span>
-                      </div>
-                    </div>
-
-                    {tf.affectedNodes && tf.affectedNodes.length > 0 && (
-                      <div className="text-xs text-slate-400">
-                        <span className="text-slate-500">Affected Addresses:</span>{" "}
-                        <span className="font-mono text-cyan-400">
-                          {tf.affectedNodes.slice(0, 4).join(", ")}
-                          {tf.affectedNodes.length > 4 && ` (+ ${tf.affectedNodes.length - 4} more)`}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Disclaimers & Integrity Banner */}
-      <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-xs text-slate-400 space-y-2">
-        <div className="flex items-center gap-2 text-slate-300 font-semibold">
-          <FileCheck className="w-4 h-4 text-emerald-400" />
-          <span>Investigator Compliance & Evidence Provenance Disclaimer</span>
+          <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
+            Provenanced Intelligence
+          </span>
         </div>
-        <p className="leading-relaxed">
-          Chain Intel service classifications are matched against verified, curated intelligence repositories or direct blockchain smart contract bytecodes. Behavioral typology indicators identify observable transaction structures (e.g. rapid forward movements, splitting, consolidation) and do not constitute legal proof of illegal activity. All inferences require independent law enforcement verification prior to operational action.
-        </p>
+
+        {vaspEvaluations.length === 0 ? (
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded text-xs text-slate-500 italic">
+            No confirmed exchange or VASP attributions identified along the current fund-flow path.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3">
+            {vaspEvaluations.map((v, idx) => (
+              <div key={idx} className="bg-slate-50 border border-slate-200 rounded-md p-3.5 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold text-slate-900 text-sm">{v.matchedEntity}</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      {v.primaryRole.replace("_", " ")}
+                    </span>
+                  </div>
+                  <span className="font-mono text-[10px] text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    Confidence: {v.confidenceLevel} ({v.confidenceScore}%)
+                  </span>
+                </div>
+
+                <div className="text-slate-700 text-xs space-y-1">
+                  {v.reasons.map((r, ri) => (
+                    <div key={ri} className="flex items-start space-x-1.5 text-[11px]">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>{r}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-amber-50/80 border border-amber-200 rounded p-2 text-[10px] text-amber-900 italic">
+                  <strong>Limitation Note:</strong> {v.limitations}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 2. DEPOSIT WALLETS & HOT/COLD INTELLIGENCE */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Deposit Wallets */}
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div className="flex items-center space-x-2">
+              <Wallet className="w-4 h-4 text-emerald-600" />
+              <h3 className="text-xs font-bold text-slate-900 uppercase">Deposit Wallets ({depositWallets.length})</h3>
+            </div>
+            <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold">
+              Direct Deposit Endpoints
+            </span>
+          </div>
+          {depositWallets.length === 0 ? (
+            <p className="text-xs text-slate-500 italic p-2 bg-slate-50 rounded">No deposit wallet endpoints matched.</p>
+          ) : (
+            <div className="space-y-2">
+              {depositWallets.map((dw, i) => (
+                <div key={i} className="p-2.5 bg-slate-50 border border-slate-200 rounded text-xs space-y-1">
+                  <div className="flex justify-between font-bold text-slate-900">
+                    <span>{dw.matchedEntity}</span>
+                    <span className="text-emerald-700 text-[10px]">{dw.jurisdiction}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600">{dw.reasons[0]}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Hot & Cold Wallet Classifications */}
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div className="flex items-center space-x-2">
+              <Layers className="w-4 h-4 text-blue-600" />
+              <h3 className="text-xs font-bold text-slate-900 uppercase">Hot / Cold Wallet Classifications ({hotWallets.length + coldWallets.length})</h3>
+            </div>
+            <span className="text-[10px] font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-bold">
+              Role Intelligence
+            </span>
+          </div>
+          {hotWallets.length === 0 && coldWallets.length === 0 ? (
+            <p className="text-xs text-slate-500 italic p-2 bg-slate-50 rounded">No specialized hot or cold wallet infrastructure classified.</p>
+          ) : (
+            <div className="space-y-2">
+              {hotWallets.map((hw, i) => (
+                <div key={i} className="p-2.5 bg-blue-50/60 border border-blue-200 rounded text-xs space-y-1">
+                  <div className="flex justify-between font-bold text-blue-900">
+                    <span>{hw.matchedEntity || "Hot Wallet Indicator"}</span>
+                    <span className="text-blue-800 text-[10px]">{hw.roleStatus}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-700">{hw.reasons[0]}</p>
+                </div>
+              ))}
+              {coldWallets.map((cw, i) => (
+                <div key={i} className="p-2.5 bg-indigo-50/60 border border-indigo-200 rounded text-xs space-y-1">
+                  <div className="flex justify-between font-bold text-indigo-900">
+                    <span>{cw.matchedEntity || "Cold Storage Vault"}</span>
+                    <span className="text-indigo-800 text-[10px]">{cw.roleStatus}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-700">{cw.reasons[0]}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 3. PHASE 6 TYPOLOGIES & SERVICE FINDINGS */}
+      <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center space-x-2">
+            <ShieldAlert className="w-5 h-5 text-rose-600" />
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+              3. Behavioral Typology Flags ({typologyFindings.length})
+            </h3>
+          </div>
+          <span className="text-xs font-semibold text-rose-800 bg-rose-50 px-2.5 py-1 rounded border border-rose-200">
+            Deterministic Rule Engine
+          </span>
+        </div>
+
+        {typologyFindings.length === 0 ? (
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded text-xs text-slate-500 italic">
+            No behavioral typology anomalies flagged for this trace.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {typologyFindings.map((tf) => (
+              <div key={tf.id} className="p-3 bg-slate-50 border border-slate-200 rounded-md text-xs space-y-1.5">
+                <div className="flex justify-between font-bold text-slate-900">
+                  <span>{tf.title}</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] bg-rose-100 text-rose-800 font-mono font-bold">
+                    {tf.severity}
+                  </span>
+                </div>
+                <p className="text-slate-700">{tf.explanation}</p>
+                <div className="flex items-center space-x-3 text-[10px] text-slate-500 font-mono">
+                  <span>Observed: {tf.observedValue}</span>
+                  <span>Threshold: {tf.thresholdUsed}</span>
+                  <span>Source: {tf.provenanceSource}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
