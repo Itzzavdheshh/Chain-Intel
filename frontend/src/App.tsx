@@ -118,14 +118,14 @@ export function App() {
       const data = await response.json();
 
       if (data.status === 'SUCCESS_WITH_DATA') {
-        const liveCase = buildLiveGraphFromTransactions(targetAddr, chainToUse, data.transactions || [], data);
+        const liveCase = buildLiveGraphFromTransactions(targetAddr, chainToUse, data);
         setActiveCase(liveCase);
         setActiveTab('trace_analysis');
         return;
       }
 
       if (data.status === 'SUCCESS_NO_TRANSFERS') {
-        const liveCase = buildLiveGraphFromTransactions(targetAddr, chainToUse, [], data);
+        const liveCase = buildLiveGraphFromTransactions(targetAddr, chainToUse, data);
         setActiveCase(liveCase);
         setActiveTab('trace_analysis');
         return;

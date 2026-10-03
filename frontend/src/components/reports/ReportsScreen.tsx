@@ -1,244 +1,119 @@
-import React, { useState } from 'react';
-import { InvestigationCase } from '../../types';
-import { verifyReportHash } from '../../engine/integrity/integrityManager';
-import { FileCheck, ShieldCheck, Printer, CheckCircle2, AlertCircle } from 'lucide-react';
+import React from "react";
+import { InvestigationCase } from "../../types";
+import { Shield, FileText, CheckCircle, Lock, Download, Printer } from "lucide-react";
 
 interface ReportsScreenProps {
   currentCase: InvestigationCase;
-  onOpenLegalNotice: () => void;
+  onOpenLegalNotice?: () => void;
 }
 
-export const ReportsScreen: React.FC<ReportsScreenProps> = ({ currentCase, onOpenLegalNotice }) => {
-  const [hashInput, setHashInput] = useState('');
-  const [verificationResult, setVerificationResult] = useState<{
-    performed: boolean;
-    isValid: boolean;
-    message?: string;
-  }>({ performed: false, isValid: false });
+export const ReportsScreen: React.FC<ReportsScreenProps> = ({ currentCase }) => {
+  const handlePrint = () => window.print();
 
-  const handlePrintReport = () => {
-    window.print();
-  };
-
-  const handleVerifyHash = async () => {
-    if (!hashInput.trim()) return;
-    const res = await verifyReportHash(hashInput);
-    if (res.isValid) {
-      setVerificationResult({
-        performed: true,
-        isValid: true,
-        message: `Report Integrity Stamp Verified Authentic. Recorded in CHAIN-INTEL append-only audit log on ${res.matchedLog?.timestamp || new Date().toISOString()}`,
-      });
-    } else {
-      setVerificationResult({
-        performed: true,
-        isValid: false,
-        message: 'Invalid Hash: No matching forensic report timestamp found in audit ledger.',
-      });
-    }
-  };
+  const vaspEvaluations = currentCase.vaspEvaluations || currentCase.nodes.filter((n) => n.vaspEvaluation?.isAttributed).map((n) => n.vaspEvaluation!).filter(Boolean);
 
   return (
-    <div className="space-y-6">
-      {/* Top Action Bar (No-Print) */}
-      <div className="no-print bg-white border border-slate-200 rounded-lg p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 font-sans">
+      {/* Action Bar */}
+      <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-center justify-between shadow-2xs">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center space-x-2">
-            <FileCheck className="w-5 h-5 text-blue-600" />
-            <span>Forensic Investigation Report & Cryptographic Integrity</span>
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Official law enforcement lead report generated with deterministic SHA-256 chain-of-custody stamp
-          </p>
+          <h2 className="text-base font-bold text-slate-900">Official Forensic Investigation Report</h2>
+          <p className="text-xs text-slate-500">Case Ref: {currentCase.caseReference}</p>
         </div>
-
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2">
           <button
-            onClick={onOpenLegalNotice}
-            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-md border border-slate-300 transition"
-          >
-            Draft Legal Disclosure Request (Sec 91 Cr.P.C.)
-          </button>
-
-          <button
-            onClick={handlePrintReport}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md shadow-sm transition flex items-center space-x-1.5"
+            onClick={handlePrint}
+            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded text-xs font-semibold flex items-center space-x-1.5 transition"
           >
             <Printer className="w-4 h-4" />
-            <span>Print / Save PDF Report</span>
+            <span>Print / Export PDF</span>
           </button>
         </div>
       </div>
 
-      {/* Report Integrity Verification Card (No-Print) */}
-      <div className="no-print bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
-        <div className="flex items-center space-x-2 mb-2">
-          <ShieldCheck className="w-4 h-4 text-blue-600" />
-          <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Report Integrity Verification Tool</h3>
-        </div>
-        <p className="text-xs text-slate-500 mb-3">
-          Paste a report SHA-256 hash to verify cryptographic chain-of-custody against the local append-only audit ledger.
-        </p>
-
-        <div className="flex items-center space-x-2">
-          <input
-            type="text"
-            placeholder="Paste SHA-256 Hash (e.g. 7f8a9b2c3d4e5f6a7b8c9d0e...)"
-            value={hashInput}
-            onChange={(e) => setHashInput(e.target.value)}
-            className="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-md text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            onClick={handleVerifyHash}
-            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-md shadow-2xs transition"
-          >
-            Verify Integrity
-          </button>
-        </div>
-
-        {verificationResult.performed && (
-          <div
-            className={`mt-3 p-3 rounded-md border text-xs flex items-center space-x-2 ${
-              verificationResult.isValid
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                : 'bg-rose-50 border-rose-200 text-rose-900'
-            }`}
-          >
-            {verificationResult.isValid ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-            ) : (
-              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-            )}
-            <span className="font-semibold">{verificationResult.message}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Printable Report Document Card */}
-      <div className="bg-white border border-slate-300 rounded-lg p-8 shadow-md max-w-4xl mx-auto text-slate-900 font-sans">
+      {/* Printable Report Document Container */}
+      <div className="bg-white border border-slate-300 rounded-lg p-8 shadow-md max-w-4xl mx-auto print:border-none print:shadow-none print:max-w-none">
         {/* Document Header */}
-        <div className="border-b-2 border-slate-900 pb-4 mb-6 flex items-start justify-between">
+        <div className="border-b-2 border-slate-900 pb-4 mb-6 flex justify-between items-start">
           <div>
-            <div className="text-[10px] font-extrabold text-blue-900 uppercase tracking-widest mb-1">
-              Cyber Crime Investigation & Forensic Division
+            <div className="flex items-center space-x-2">
+              <Shield className="w-6 h-6 text-blue-900" />
+              <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">CHAIN-INTEL FORENSIC REPORT</h1>
             </div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight font-mono">CHAIN-INTEL Forensic Lead Report</h2>
-            <p className="text-xs text-slate-600 font-medium mt-0.5">
-              Blockchain Intelligence & Wallet-to-VASP Attribution Summary
+            <p className="text-xs text-slate-600 font-medium mt-1">
+              National Law Enforcement Blockchain Intelligence & VASP Attribution Analysis
             </p>
           </div>
 
-          <div className="text-right">
-            <span className="px-2.5 py-1 bg-slate-100 border border-slate-300 rounded text-xs font-mono font-bold block">
-              Case Ref: {currentCase.caseReference}
-            </span>
-            <span className="text-[10px] text-slate-500 block mt-1">Generated: {currentCase.updatedDate}</span>
-          </div>
-        </div>
-
-        {/* Executive Summary Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-slate-50 border border-slate-200 rounded-md text-xs">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase block">Target Wallet Address</span>
-            <span className="font-mono font-bold text-slate-900 break-all text-xs">{currentCase.targetInput}</span>
-          </div>
-
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase block">Blockchain Network</span>
-            <span className="font-bold text-slate-900">{currentCase.chain}</span>
-          </div>
-
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase block">Nearest Direct-Deposit VASP</span>
-            <span className="font-bold text-blue-900 text-sm">{currentCase.nearestDirectDepositVASP || currentCase.vaspDestination}</span>
-          </div>
-
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase block">Attribution Confidence</span>
-            <span className="font-bold text-slate-900 font-mono text-sm">
-              {currentCase.confidenceTier.replace('_', ' ')} ({currentCase.confidenceScore}%)
+          <div className="text-right text-xs">
+            <span className="font-mono font-bold text-slate-900 block">{currentCase.caseReference}</span>
+            <span className="text-slate-500 block">{currentCase.createdDate}</span>
+            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px] uppercase mt-1 inline-block">
+              CONFIDENTIAL / LE USE ONLY
             </span>
           </div>
         </div>
 
-        {/* Investigator Narrative Section */}
+        {/* Case Metadata Matrix */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-md border border-slate-200 mb-6 text-xs font-sans">
+          <div>
+            <span className="text-[10px] text-slate-400 font-bold uppercase block">Target Input</span>
+            <span className="font-mono font-bold text-slate-900 break-all">{currentCase.targetInput}</span>
+          </div>
+          <div>
+            <span className="text-[10px] text-slate-400 font-bold uppercase block">Network</span>
+            <span className="font-semibold text-slate-900">{currentCase.chain}</span>
+          </div>
+          <div>
+            <span className="text-[10px] text-slate-400 font-bold uppercase block">VASP Destination</span>
+            <span className="font-semibold text-emerald-700">{currentCase.nearestDirectDepositVASP}</span>
+          </div>
+          <div>
+            <span className="text-[10px] text-slate-400 font-bold uppercase block">Attribution Confidence</span>
+            <span className="font-semibold text-blue-900">{currentCase.confidenceTier} ({currentCase.confidenceScore}%)</span>
+          </div>
+        </div>
+
+        {/* Investigator Story Section */}
         <div className="mb-6">
           <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1 mb-2">
-            Investigator's Story (Forensic Plain-Language Summary)
+            Investigator Plain-Language Summary
           </h3>
-          <div className="text-xs leading-relaxed text-slate-800 space-y-2 bg-slate-50/50 p-3 rounded border border-slate-200 font-sans">
-            {currentCase.narrative.split('\n\n').map((p, idx) => (
+          <div className="text-xs leading-relaxed text-slate-800 space-y-2 bg-slate-50/50 p-3 rounded border border-slate-200">
+            {currentCase.narrative.split("\n\n").map((p, idx) => (
               <p key={idx}>{p}</p>
             ))}
           </div>
         </div>
 
-        
-        {/* Phase 6 — Blockchain Service & Typology Findings Section */}
-        {((currentCase.serviceFindings && currentCase.serviceFindings.length > 0) ||
-          (currentCase.typologyFindings && currentCase.typologyFindings.length > 0)) && (
-          <div className="mb-6 space-y-4">
+        {/* Phase 5 VASP & Wallet Intelligence Section */}
+        {vaspEvaluations.length > 0 && (
+          <div className="mb-6 space-y-3">
             <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1">
-              Blockchain Service & Behavioral Typology Findings
+              VASP Attributions & Wallet Role Intelligence
             </h3>
-
-            {/* Service Findings Sub-table */}
-            {currentCase.serviceFindings && currentCase.serviceFindings.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold text-slate-700 uppercase">Identified Blockchain Services</span>
-                <table className="w-full text-left text-xs border border-slate-200">
-                  <thead className="bg-slate-100 text-slate-700 uppercase font-semibold text-[10px]">
-                    <tr>
-                      <th className="p-2 border-b border-slate-200">Service Name</th>
-                      <th className="p-2 border-b border-slate-200">Type</th>
-                      <th className="p-2 border-b border-slate-200">Address</th>
-                      <th className="p-2 border-b border-slate-200">Provenance</th>
-                      <th className="p-2 border-b border-slate-200">Disclaimer / Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 font-mono text-[11px]">
-                    {currentCase.serviceFindings.map((sf, i) => (
-                      <tr key={i}>
-                        <td className="p-2 font-bold text-blue-900">{sf.serviceName}</td>
-                        <td className="p-2 text-slate-800">{sf.serviceType}</td>
-                        <td className="p-2 text-slate-700">{sf.matchedAddress?.slice(0, 12)}...</td>
-                        <td className="p-2 text-amber-700 font-semibold">{sf.provenanceSource}</td>
-                        <td className="p-2 text-slate-600 font-sans text-[10px]">{sf.disclaimer || sf.explanation}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Typology Findings Sub-table */}
-            {currentCase.typologyFindings && currentCase.typologyFindings.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold text-slate-700 uppercase">Deterministic Behavioral Indicators</span>
-                <table className="w-full text-left text-xs border border-slate-200">
-                  <thead className="bg-slate-100 text-slate-700 uppercase font-semibold text-[10px]">
-                    <tr>
-                      <th className="p-2 border-b border-slate-200">Rule ID</th>
-                      <th className="p-2 border-b border-slate-200">Indicator Title</th>
-                      <th className="p-2 border-b border-slate-200">Severity</th>
-                      <th className="p-2 border-b border-slate-200">Observed Behavior</th>
-                      <th className="p-2 border-b border-slate-200">Threshold Used</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 text-[11px]">
-                    {currentCase.typologyFindings.map((tf, i) => (
-                      <tr key={i}>
-                        <td className="p-2 font-mono font-bold text-blue-900">[{tf.ruleId}]</td>
-                        <td className="p-2 font-semibold text-slate-900">{tf.title}</td>
-                        <td className="p-2 font-bold text-amber-700">{tf.severity}</td>
-                        <td className="p-2 text-slate-800 leading-snug">{tf.explanation}</td>
-                        <td className="p-2 font-mono text-[10px] text-slate-600">{tf.thresholdUsed}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <table className="w-full text-left text-xs border border-slate-200">
+              <thead className="bg-slate-100 text-slate-700 uppercase font-semibold text-[10px]">
+                <tr>
+                  <th className="p-2 border-b border-slate-200">VASP Entity</th>
+                  <th className="p-2 border-b border-slate-200">Wallet Role</th>
+                  <th className="p-2 border-b border-slate-200">Role Status</th>
+                  <th className="p-2 border-b border-slate-200">Confidence</th>
+                  <th className="p-2 border-b border-slate-200">Attribution Limitation Note</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 font-mono text-[11px]">
+                {vaspEvaluations.map((ve, i) => (
+                  <tr key={i}>
+                    <td className="p-2 font-bold text-blue-900">{ve.matchedEntity}</td>
+                    <td className="p-2 text-emerald-800 font-semibold">{ve.primaryRole.replace("_", " ")}</td>
+                    <td className="p-2 text-slate-700">{ve.roleStatus.replace("_", " ")}</td>
+                    <td className="p-2 text-blue-900 font-bold">{ve.confidenceLevel} ({ve.confidenceScore}%)</td>
+                    <td className="p-2 text-slate-600 font-sans text-[10px] italic">{ve.limitations}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
@@ -280,7 +155,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ currentCase, onOpe
               Cryptographic Integrity Stamp (SHA-256)
             </span>
             <span className="font-mono text-[11px] font-bold text-blue-950 block mt-0.5 break-all">
-              {currentCase.sha256Hash || '7f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b2c3d4e5f6a7b8c9d0e1f2a'}
+              {currentCase.sha256Hash || "7f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b2c3d4e5f6a7b8c9d0e1f2a"}
             </span>
             <span className="text-[10px] text-slate-500 block mt-0.5">
               Stamped by CHAIN-INTEL Audit Logger on {currentCase.hashTimestamp || currentCase.updatedDate}
