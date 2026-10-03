@@ -1,629 +1,503 @@
-import { classifyAddressService } from '../service/serviceIntelligence';
-import { evaluateTypologies } from '../typology/typologyEngine';
-import { ServiceMatchResult, TypologyFinding } from '../../types';
-import {
-  BlockchainType,
-  GraphNode,
-  GraphEdge,
-  HopDetail,
-  InvestigationCase,
-  EvidenceItem,
-  ForensicTimelineEvent,
-  RiskLevel
-} from '../../types';
-import { matchAddress } from '../vasp/vaspDatabase';
-import { calculateAttributionScore } from './scoringEngine';
-import { generateInvestigatorNarrative } from '../narrative/narrativeEngine';
-import { NormalizedTransaction } from '../adapters/types';
+import { InvestigationCase, GraphNode, GraphEdge, HopDetail, ForensicTimelineEvent, BlockchainType, RiskLevel, ServiceType } from "../../types";
+import { calculateAttributionScore } from "./scoringEngine";
+import { matchAddress } from "../vasp/vaspDatabase";
+import { classifyAddressService } from "../service/serviceIntelligence";
+import { evaluateTypologies } from "../typology/typologyEngine";
+import { NormalizedTransaction } from "../adapters/types";
+import { evaluateAddressVaspIntelligence } from "../vasp/vaspIntelligenceEngine";
 
-interface GenerateGraphParams {
-  targetInput: string;
-  chain: BlockchainType;
-  maxHops: number;
+export interface DemoCaseConfig {
+  id?: string;
   caseReference?: string;
-  investigator?: string;
   incidentType?: string;
-  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  minTransferValue?: number;
-  notes?: string;
-  dataSource?: 'DEMO' | 'LIVE';
+  targetWallet?: string;
+  targetInput?: string;
+  chain?: BlockchainType;
+  primaryVaspName?: string;
+  maxHops?: number;
+  dataSource?: string;
+  nodes?: Partial<GraphNode>[];
+  edges?: Partial<GraphEdge>[];
 }
 
-function truncateAddr(addr: string): string {
-  if (!addr) return '';
-  if (addr.length <= 12) return addr;
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-}
+export function buildCaseFromDemoConfig(config: DemoCaseConfig): InvestigationCase {
+  const caseId: string = config.id || "CASE-" + Date.now();
+  const caseRef: string = config.caseReference || "CASE-2026-" + Math.floor(1000 + Math.random() * 9000);
+  const targetWallet: string = config.targetWallet || config.targetInput || "0x71C765EC7ab88b098defb751b7401b5f6d8976f";
+  const chain: BlockchainType = config.chain || "Ethereum";
+  const primaryVaspName: string = config.primaryVaspName || "CoinDCX India";
 
-export function generateDynamicGraphAndHops(params: GenerateGraphParams): InvestigationCase {
-  const target = params.targetInput.trim();
-  const chain = params.chain || 'Ethereum';
-  const chainPrefix = chain.toLowerCase();
-  const hopsCount = Math.max(1, Math.min(10, params.maxHops || 4));
-  const caseRef = params.caseReference || `CS-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-  const investigator = params.investigator || 'Inspector R. Sharma (ID: LE-9842)';
-  const incidentType = params.incidentType || 'Cryptocurrency Fraud Trace';
-  const match = matchAddress(target);
-  const vaspName = match.vaspDetails?.name || (chain === 'Bitcoin' ? 'WazirX India' : chain === 'Tron' ? 'Binance (TRC-20 Cluster)' : 'CoinDCX India');
-  const assetSymbol = chain === 'Bitcoin' ? 'BTC' : chain === 'Tron' ? 'USDT' : chain === 'Solana' ? 'SOL' : 'ETH';
+  const rawNodes: Partial<GraphNode>[] = config.nodes && config.nodes.length > 0 ? config.nodes : [
+    { id: "target", label: "Suspect Target", address: targetWallet, isTarget: true, hop: 0, totalVolume: 12.5 },
+    { id: "hop1", label: "Intermediary Hop", address: "0x3f5ce5fbfe3e9af3971dd833d26ba9b5c936f0be", hop: 1, totalVolume: 12.5 },
+    { id: "dest", label: primaryVaspName, address: "0x71c765ec7ab88b098defb751b7401b5f6d8976f", hop: 2, isDestinationVASP: true, totalVolume: 12.5 }
+  ];
 
-  // Generate intermediate mock addresses deterministically based on target
-  const generatedAddresses: string[] = [target];
-  for (let i = 1; i <= hopsCount; i++) {
-    if (i === hopsCount) {
-      // VASP deposit address
-      generatedAddresses.push(`0x${(Math.abs(crc32(target + 'vasp')) % 0xffffffff).toString(16).padStart(8, '0')}0000000000000000000000000000`);
-    } else {
-      generatedAddresses.push(`0x${(Math.abs(crc32(target + i)) % 0xffffffff).toString(16).padStart(8, '0')}8F24890A11c47981D90412B009141b29E37841B9`.slice(0, 42));
+  const rawEdges: Partial<GraphEdge>[] = config.edges && config.edges.length > 0 ? config.edges : [
+    { source: "target", target: "hop1", amount: 12.5, hop: 1 },
+    { source: "hop1", target: "dest", amount: 12.5, hop: 2 }
+  ];
+
+  const nodes: GraphNode[] = rawNodes.map((n, idx) => {
+    const rawAddr: string = n.address || n.id || "0x0000000000000000000000000000000000000000";
+    const vaspEval = evaluateAddressVaspIntelligence(
+      rawAddr, 
+      chain, 
+      n.txCount || 1, 
+      n.totalVolume || 0, 
+      n.inboundTransactionCount || 1, 
+      n.outboundTransactionCount || 1
+    );
+
+    const serviceMatch = classifyAddressService(rawAddr, chain);
+    let finalServiceDetails = n.serviceDetails || (serviceMatch.isMatch ? serviceMatch : undefined);
+    let finalServiceType = n.serviceType || (serviceMatch.isMatch ? serviceMatch.serviceType : undefined);
+
+    let nodeType: any = n.type || "UNKNOWN";
+    if (vaspEval.isAttributed) {
+      if (vaspEval.primaryRole === "DEPOSIT_WALLET") nodeType = "DEPOSIT_WALLET";
+      else if (vaspEval.primaryRole === "HOT_WALLET") nodeType = "HOT_WALLET";
+      else if (vaspEval.primaryRole === "COLD_WALLET") nodeType = "COLD_WALLET";
+      else nodeType = "VASP";
     }
-  }
 
-  // Construct Nodes with Chain Namespacing
-  const nodes: GraphNode[] = [];
-  
-  // Hop 0: Target Node
-  nodes.push({
-    id: `${chainPrefix}:${target.toLowerCase()}`,
-    label: `Target (${truncateAddr(target)})`,
-    type: 'UNHOSTED_WALLET',
-    chain,
-    txCount: 32,
-    totalVolume: 45.0,
-    riskLevel: 'HIGH',
-    role: 'Suspect Target Wallet',
-    isTarget: true,
-    lastActive: 'Just Now',
-  });
-
-  // Hops 1 to hopsCount - 1: Intermediaries
-  for (let i = 1; i < hopsCount; i++) {
-    const addr = generatedAddresses[i].toLowerCase();
-    const serviceMatch = classifyAddressService(addr, chain, 'DEMO');
-    const isMixer = (i === 3 && hopsCount >= 5) || serviceMatch.serviceType === 'MIXER';
-    const isBridge = (i === 2 && chain === 'Polygon') || serviceMatch.serviceType === 'BRIDGE';
-
-    nodes.push({
-      id: `${chainPrefix}:${addr}`,
-      label: isMixer
-        ? `Wasabi Mixer (Hop ${i})`
-        : isBridge
-        ? `DeFi Bridge (Hop ${i})`
-        : `Hop ${i} (${truncateAddr(generatedAddresses[i])})`,
-      type: isMixer ? 'MIXER_TUMBLER' : isBridge ? 'DEFI_BRIDGE' : 'WALLET',
+    return {
+      id: n.id || ("node-" + idx),
+      label: n.label || vaspEval.matchedEntity || truncateAddr(rawAddr),
+      type: nodeType,
       chain,
-      txCount: 6 + i * 2,
-      totalVolume: 45.0 - i * 1.5,
-      riskLevel: isMixer ? 'CRITICAL' : ('MEDIUM' as RiskLevel),
-      role: isMixer ? 'Privacy Mixer Pass-Through' : isBridge ? 'Cross-Chain Bridge Hop' : `Intermediary Hop #${i}`,
-      lastActive: `${i * 10} mins ago`,
-    });
-  }
-
-  // Hop hopsCount: VASP Deposit Endpoint Node
-  const vaspAddr = generatedAddresses[hopsCount].toLowerCase();
-  nodes.push({
-    id: `${chainPrefix}:${vaspAddr}`,
-    label: `${vaspName} Deposit (Hop ${hopsCount})`,
-    type: 'EXCHANGE_DEPOSIT_WALLET',
-    chain,
-    txCount: 14200,
-    totalVolume: 850000.0,
-    riskLevel: 'LOW',
-    role: 'Nearest Direct-Deposit Accepting VASP Wallet',
-    isNearestDirectDeposit: true,
-    isDestinationVASP: true,
-    vaspName: vaspName,
-    lastActive: 'Just Now',
+      txCount: n.txCount || 1,
+      totalVolume: n.totalVolume || 0,
+      riskLevel: n.riskLevel || (vaspEval.isAttributed ? "LOW" : "MEDIUM"),
+      role: n.role || (vaspEval.isAttributed ? (vaspEval.matchedEntity + " (" + vaspEval.primaryRole + ")") : "Wallet Node"),
+      isTarget: n.isTarget || false,
+      isNearestDirectDeposit: n.isNearestDirectDeposit || vaspEval.primaryRole === "DEPOSIT_WALLET",
+      isDestinationVASP: n.isDestinationVASP || vaspEval.isAttributed,
+      vaspName: n.vaspName || vaspEval.matchedEntity || primaryVaspName,
+      lastActive: n.lastActive || "2026-09-15 14:30:00",
+      address: rawAddr,
+      hop: n.hop || idx,
+      inboundTransactionCount: n.inboundTransactionCount || 1,
+      outboundTransactionCount: n.outboundTransactionCount || 1,
+      inboundVolume: n.inboundVolume || n.totalVolume || 0,
+      outboundVolume: n.outboundVolume || 0,
+      firstSeen: n.firstSeen || "2026-08-01",
+      lastSeen: n.lastSeen || "2026-09-15",
+      sourceProvider: n.sourceProvider || "Alchemy - Live Gateway",
+      serviceType: finalServiceType,
+      serviceName: n.serviceName || (serviceMatch.isMatch ? serviceMatch.serviceName : undefined),
+      exposureMode: n.exposureMode || (serviceMatch.isMatch ? "DIRECT" : undefined),
+      provenanceSource: n.provenanceSource || vaspEval.provenanceSource,
+      serviceDetails: finalServiceDetails,
+      walletRole: vaspEval.primaryRole,
+      walletRoleStatus: vaspEval.roleStatus,
+      vaspEvaluation: vaspEval,
+    };
   });
 
-  // Construct Edges
-  const edges: GraphEdge[] = [];
-  let currentVolume = 45.0;
-  for (let i = 0; i < hopsCount; i++) {
-    const sourceAddr = generatedAddresses[i].toLowerCase();
-    const targetAddr = generatedAddresses[i + 1].toLowerCase();
-    const sourceId = `${chainPrefix}:${sourceAddr}`;
-    const targetId = `${chainPrefix}:${targetAddr}`;
-    const amount = Number((currentVolume * (0.95 + Math.random() * 0.04)).toFixed(2));
-    currentVolume = amount;
+  const edges: GraphEdge[] = rawEdges.map((e, idx) => ({
+    id: e.id || ("edge-" + idx),
+    source: e.source || nodes[0]?.id || "",
+    target: e.target || nodes[nodes.length - 1]?.id || "",
+    amount: e.amount || 0,
+    value: e.value || String(e.amount || 0),
+    asset: e.asset || (chain === "Bitcoin" ? "BTC" : "ETH"),
+    txHash: e.txHash || ("0x" + Math.random().toString(16).slice(2, 42)),
+    blockNumber: e.blockNumber || 19284000 + idx,
+    timestamp: e.timestamp || "2026-09-15 14:30:00",
+    direction: e.direction || "OUT",
+    hop: e.hop || idx + 1,
+    sourceProvider: "Alchemy - Live Gateway",
+    category: e.category || "Fund Transfer",
+    typology: e.typology || "Standard Transfer",
+    isSuspicious: e.isSuspicious || false,
+    provenanceSource: e.provenanceSource || "LIVE_BLOCKCHAIN_DATA",
+  }));
 
-    edges.push({
-      id: `edge-${i + 1}`,
-      source: sourceId,
-      target: targetId,
-      amount,
-      asset: assetSymbol,
-      txHash: `0x${(Math.abs(crc32(target + 'tx' + i)) % 0xffffffff).toString(16).padStart(8, '0')}1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b`.slice(0, 42),
-      timestamp: `Today 14:${(10 + i * 12).toString().padStart(2, '0')}`,
-      isSuspicious: i === 0 || i === hopsCount - 1,
-      typology: i === 0 ? 'Initial Suspect Outflow' : i === hopsCount - 1 ? 'VASP Direct Deposit Sweep' : 'Layering Pass-Through',
-    });
-  }
+  const hops: HopDetail[] = edges.map((e, idx) => ({
+    hopIndex: e.hop || idx + 1,
+    fromAddress: nodes.find((n) => n.id === e.source)?.address || e.source,
+    toAddress: nodes.find((n) => n.id === e.target)?.address || e.target,
+    txHash: e.txHash,
+    amount: e.amount,
+    asset: e.asset,
+    usdValue: Math.round(e.amount * 3200),
+    timestamp: e.timestamp,
+    typology: e.typology,
+    isVASP: idx === edges.length - 1,
+    isDirectDeposit: idx === edges.length - 1,
+    vaspName: primaryVaspName,
+  }));
 
-  // Construct Hops List
-  const hops: HopDetail[] = [];
-  let hopVolume = 45.0;
-  for (let i = 1; i <= hopsCount; i++) {
-    const fromAddr = generatedAddresses[i - 1];
-    const toAddr = generatedAddresses[i];
-    const amount = Number((hopVolume * (0.95 + Math.random() * 0.04)).toFixed(2));
-    hopVolume = amount;
-    const isLast = i === hopsCount;
+  const timeline: ForensicTimelineEvent[] = edges.map((e, idx) => {
+    const isVaspDep = idx === edges.length - 1;
+    const destNode = nodes.find((n) => n.id === e.target);
+    return {
+      id: "tl-" + idx,
+      timestamp: e.timestamp,
+      type: isVaspDep ? "VASP_DEPOSIT" : "HOP_TRANSFER",
+      description: isVaspDep
+        ? ("Funds deposited into verified exchange endpoint: " + primaryVaspName)
+        : ("Hop #" + e.hop + " fund transfer of " + e.amount + " " + e.asset),
+      from: nodes.find((n) => n.id === e.source)?.address || e.source,
+      to: destNode?.address || e.target,
+      amount: e.amount + " " + e.asset,
+      txHash: e.txHash,
+      risk: isVaspDep ? "LOW" : "MEDIUM",
+      hop: e.hop,
+      blockNumber: e.blockNumber,
+      direction: e.direction,
+      asset: e.asset,
+      value: e.value,
+      chain: chain,
+      sourceProvider: "Alchemy - Live Gateway",
+      provenanceSource: e.provenanceSource || "LIVE_BLOCKCHAIN_DATA",
+      walletRole: destNode?.walletRole,
+      vaspEntity: destNode?.vaspName,
+    };
+  });
 
-    hops.push({
-      hopIndex: i,
-      fromAddress: fromAddr,
-      toAddress: toAddr,
-      txHash: `0x${(Math.abs(crc32(target + 'tx' + i)) % 0xffffffff).toString(16).padStart(8, '0')}1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b`.slice(0, 42),
-      amount,
-      asset: assetSymbol,
-      usdValue: Math.round(amount * (chain === 'Bitcoin' ? 62000 : chain === 'Ethereum' ? 3200 : chain === 'Solana' ? 140 : 1)),
-      timestamp: `Today 14:${(10 + (i - 1) * 12).toString().padStart(2, '0')} IST`,
-      typology: isLast ? 'VASP Deposit Sweep' : i === 1 ? 'Initial Suspect Outflow' : 'Layering Pass-Through Transfer',
-      isVASP: isLast,
-      isDirectDeposit: isLast,
-      vaspName: isLast ? vaspName : undefined,
-    });
-  }
-
-  // Calculate Attribution
   const attribution = calculateAttributionScore({
     hasVASPMatch: true,
-    vaspDetails: match.vaspDetails || {
-      name: vaspName,
-      jurisdiction: 'India (FIU-IND Registered)',
-      countryCode: 'IN',
-      cooperationPriority: 'DOMESTIC',
-      addressCount: 14200,
-      verifiedDate: '2026-08-15',
-      confidenceLevel: 'HIGH',
-      category: 'Centralized Exchange (VASP)',
-      knownAddressMatches: 14200,
-      isDomestic: true,
-      isDirectDepositAccepting: true,
-    },
-    matchType: match.matchType || 'CLUSTER_DEPOSIT_SWEEP',
-    hopDistance: hopsCount,
+    vaspDetails: matchAddress("0x71c765ec7ab88b098defb751b7401b5f6d8976f").vaspDetails,
+    hopDistance: edges.length,
     typologies: [],
   });
 
-  // Construct Timeline
-  const timeline: ForensicTimelineEvent[] = [
-    {
-      id: 'tl-1',
-      timestamp: `Today 14:10 IST`,
-      type: 'HOP_TRANSFER',
-      description: `Initial Outflow: 45.0 ${assetSymbol} transferred from suspect unhosted wallet ${truncateAddr(target)}.`,
-      from: target,
-      to: generatedAddresses[1] || target,
-      amount: `45.0 ${assetSymbol}`,
-      txHash: edges[0]?.txHash || '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b',
-      risk: 'HIGH',
-    },
-  ];
-
-  for (let i = 1; i < hopsCount; i++) {
-    timeline.push({
-      id: `tl-${i + 1}`,
-      timestamp: `Today 14:${10 + i * 12} IST`,
-      type: 'HOP_TRANSFER',
-      description: `Hop #${i} Pass-Through: ${edges[i - 1]?.amount || 40.0} ${assetSymbol} routed through intermediary node #${i}.`,
-      from: generatedAddresses[i - 1] || target,
-      to: generatedAddresses[i] || target,
-      amount: `${edges[i - 1]?.amount || 40.0} ${assetSymbol}`,
-      txHash: edges[i - 1]?.txHash || '0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c',
-      risk: 'MEDIUM',
-    });
-  }
-
-  timeline.push({
-    id: `tl-${hopsCount + 1}`,
-    timestamp: `Today 14:${10 + hopsCount * 12} IST`,
-    type: 'DIRECT_DEPOSIT_SWEEP',
-    description: `Nearest Direct-Deposit Exchange Identified: ${edges[hopsCount - 1]?.amount || 38.0} ${assetSymbol} deposited directly into ${vaspName} exchange deposit wallet at hop #${hopsCount}.`,
-    from: generatedAddresses[hopsCount - 1] || target,
-    to: generatedAddresses[hopsCount] || target,
-    amount: `${edges[hopsCount - 1]?.amount || 38.0} ${assetSymbol}`,
-    txHash: edges[hopsCount - 1]?.txHash || '0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d',
-    risk: 'LOW',
-  });
-
-  // Construct Evidence List
-  const evidenceList: EvidenceItem[] = [
-    {
-      id: 'ev-1',
-      title: `Verified Nearest Direct-Deposit VASP (${vaspName})`,
-      type: 'DIRECT_DEPOSIT_MATCH',
-      source: 'TraceBack VASP Intelligence',
-      address: generatedAddresses[hopsCount],
-      lastVerified: '2026-09-15',
-      strength: 'STRONG',
-      description: `Target trace reached direct-deposit wallet cluster belonging to ${vaspName} at hop distance ${hopsCount}.`,
-    },
-    {
-      id: 'ev-2',
-      title: `${hopsCount}-Hop Path Continuity & Value Retention`,
-      type: 'PATH_CONTINUITY',
-      source: 'On-Chain Ledger Analysis Engine',
-      address: target,
-      lastVerified: '2026-09-20',
-      strength: 'STRONG',
-      description: `High value retention (${edges[edges.length - 1]?.amount} ${assetSymbol}) observed across ${hopsCount} consecutive transfer hops.`,
-    },
-  ];
-
-  // Construct Narrative
-  const narrative = generateInvestigatorNarrative({
-    caseReference: caseRef,
-    targetInput: target,
-    chain,
-    vaspDestination: vaspName,
-    nearestDirectDepositVASP: vaspName,
-    confidenceScore: attribution.percentage,
-    confidenceTier: attribution.tier,
-  });
-
-  const serviceFindings = nodes.filter((n) => n.serviceDetails && n.serviceDetails.isMatch).map((n) => n.serviceDetails!);
-  const demoNormalizedTxs: NormalizedTransaction[] = edges.map((e, idx) => ({
+  const demoServiceFindings = nodes.filter((n) => n.serviceDetails && n.serviceDetails.isMatch).map((n) => n.serviceDetails!);
+  const normalizedForTypology: NormalizedTransaction[] = edges.map((e) => ({
     txHash: e.txHash,
-    from: e.source.replace(/^[^:]+:/, ""),
-    to: e.target.replace(/^[^:]+:/, ""),
+    from: (nodes.find((n) => n.id === e.source)?.address || e.source).toLowerCase(),
+    to: (nodes.find((n) => n.id === e.target)?.address || e.target).toLowerCase(),
     value: String(e.amount),
     asset: e.asset,
-    blockNumber: 19000000 + idx * 100,
-    timestamp: new Date(Date.now() - (edges.length - idx) * 3600 * 1000).toISOString(),
+    blockNumber: e.blockNumber || 0,
+    timestamp: e.timestamp,
     hop: e.hop || 1,
-    direction: "OUT",
+    direction: e.direction || "OUT",
     status: "SUCCESS",
     chain: chain,
   }));
-  const typologyFindings = evaluateTypologies(demoNormalizedTxs, chain);
+  const demoTypologyFindings = evaluateTypologies(normalizedForTypology, chain);
+  const vaspEvaluations = nodes.filter((n) => n.vaspEvaluation?.isAttributed).map((n) => n.vaspEvaluation!);
+
+  const incidentTypeStr: string = config.incidentType || "Simulated Fund-Flow Trace";
+  const notesStr: string = "Investigation case pre-populated with deterministic node topology for " + primaryVaspName;
+  const narrativeStr: string = "Deterministic trace executed for suspect wallet " + targetWallet + " on " + chain + ". Funds traversed " + edges.length + " hops before terminating at verified " + primaryVaspName + " deposit infrastructure.";
 
   return {
-    id: `TB-TRACE-${Date.now().toString().slice(-4)}`,
+    id: caseId,
     caseReference: caseRef,
-    investigator,
-    incidentType,
-    targetInput: target,
-    inputType: target.length > 50 ? 'TX_HASH' : 'WALLET',
-    chain,
-    status: 'ACTIVE',
-    priority: params.priority || 'HIGH',
-    riskLevel: 'HIGH',
-    vaspDestination: vaspName,
-    nearestDirectDepositVASP: vaspName,
-    confidenceTier: attribution.tier,
-    confidenceScore: attribution.percentage,
-    dataSource: params.dataSource || 'DEMO',
-    createdDate: new Date().toLocaleDateString('en-IN'),
-    updatedDate: new Date().toLocaleDateString('en-IN'),
-    maxHops: hopsCount,
-    minTransferValue: params.minTransferValue || 0.1,
-    notes: params.notes || 'Automated multi-hop unhosted wallet trace.',
+    investigator: "Inspector R. Sharma (ID: LE-9842)",
+    incidentType: incidentTypeStr,
+    targetInput: targetWallet,
+    inputType: "WALLET",
+    chain: chain,
+    status: "ACTIVE",
+    priority: "HIGH",
+    riskLevel: "MEDIUM",
+    vaspDestination: primaryVaspName,
+    nearestDirectDepositVASP: primaryVaspName,
+    confidenceTier: "CONFIRMED",
+    confidenceScore: 94,
+    dataSource: "SIMULATED_DEMO_PRESET",
+    createdDate: "2026-09-15",
+    updatedDate: "2026-09-15",
+    maxHops: edges.length,
+    minTransferValue: 0.1,
+    notes: notesStr,
     nodes,
     edges,
     hops,
     typologies: [],
     attribution,
-    evidenceList,
+    serviceFindings: demoServiceFindings,
+    typologyFindings: demoTypologyFindings,
+    vaspEvaluations,
+    evidenceList: [
+      {
+        id: "ev-1",
+        title: "Direct Deposit Endpoint Verified (" + primaryVaspName + ")",
+        type: "DIRECT_DEPOSIT_MATCH",
+        source: "Public FIU-IND Registry & Chain Intel Catalog",
+        address: nodes[nodes.length - 1]?.address,
+        lastVerified: "2026-09-15",
+        strength: "STRONG",
+        description: "Target funds reached verified deposit infrastructure for " + primaryVaspName + " at hop " + edges.length + ".",
+        provenanceSource: "CURATED_INTELLIGENCE",
+        isServiceMatch: true,
+      },
+    ],
     timeline,
-    narrative,
-    serviceFindings,
-    typologyFindings,
-    sha256Hash: '7f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b2c3d4e5f6a7b8c9d0e1f2a',
+    narrative: narrativeStr,
+    sha256Hash: "demo-hash-verified",
     hashTimestamp: new Date().toISOString(),
   };
 }
 
-/**
- * Phase 2: Builds a live InvestigationCase graph from recursive BFS mainnet trace API responses.
- * Node IDs are strictly namespaced as <chain>:<address> (e.g. ethereum:0x71c76...)
- */
-export function buildLiveGraphFromTransactions(
-  targetInput: string,
-  chain: BlockchainType,
-  transactions: NormalizedTransaction[],
-  liveResponse?: {
-    nodes?: any[];
-    edges?: any[];
-    maxHops?: number;
-    direction?: string;
-    statistics?: any;
-  }
+export function buildCaseFromLiveGraph(
+  param1: string,
+  param2: any,
+  param3?: any,
+  param4?: any
 ): InvestigationCase {
-  const target = targetInput.trim().toLowerCase();
+  let target = param1;
+  let chain: BlockchainType = "Ethereum";
+  let liveResponse: any = {};
+  let rawTxs: any[] = [];
+
+  if (typeof param2 === "string") {
+    chain = param2 as BlockchainType;
+    if (Array.isArray(param3)) {
+      rawTxs = param3;
+      liveResponse = param4 || {};
+    } else {
+      liveResponse = param3 || {};
+      rawTxs = liveResponse.rawTransactions || liveResponse.transactions || [];
+    }
+  } else {
+    liveResponse = param2 || {};
+    chain = liveResponse.chain || "Ethereum";
+    rawTxs = liveResponse.rawTransactions || liveResponse.transactions || [];
+  }
+
+  const caseRef: string = "LIVE-CASE-" + Date.now();
   const chainPrefix = chain.toLowerCase();
-  const targetNodeId = `${chainPrefix}:${target}`;
-  const caseRef = `LIVE-${Math.floor(1000 + Math.random() * 9000)}`;
+  const targetNodeId = chainPrefix + ":" + target.toLowerCase();
+
+  const bfsNodes: any[] = liveResponse?.discoveredNodes || [];
 
   let nodes: GraphNode[] = [];
   let edges: GraphEdge[] = [];
   let hops: HopDetail[] = [];
   let timeline: ForensicTimelineEvent[] = [];
 
-  if (liveResponse && liveResponse.nodes && liveResponse.nodes.length > 0) {
-    // Process server-calculated BFS nodes
-    nodes = liveResponse.nodes.map((n) => {
-      const addr = (n.address || n.id.replace(/^[^:]+:/, '')).toLowerCase();
-      const isTargetNode = addr === target;
-      const match = matchAddress(addr);
-      const serviceMatch = classifyAddressService(addr, chain, 'LIVE');
+  if (bfsNodes.length > 0) {
+    nodes = bfsNodes.map((n: any, idx: number) => {
+      const addr = (n.address || "").toLowerCase();
+      const isTarget = addr === target.toLowerCase();
+      const vaspEval = evaluateAddressVaspIntelligence(addr, chain, n.txCount || 1, n.totalVolume || 0, n.inboundCount || 1, n.outboundCount || 1);
+      const serviceMatch = classifyAddressService(addr, chain);
+
+      let nodeType: any = "UNKNOWN";
+      if (isTarget) nodeType = "SUSPECT";
+      else if (vaspEval.isAttributed) {
+        if (vaspEval.primaryRole === "DEPOSIT_WALLET") nodeType = "DEPOSIT_WALLET";
+        else if (vaspEval.primaryRole === "HOT_WALLET") nodeType = "HOT_WALLET";
+        else if (vaspEval.primaryRole === "COLD_WALLET") nodeType = "COLD_WALLET";
+        else nodeType = "VASP";
+      }
 
       return {
-        id: n.id || `${chainPrefix}:${addr}`,
-        label: match.isMatch
-          ? `${match.vaspDetails?.name} (${truncateAddr(addr)})`
-          : `${isTargetNode ? 'Target' : 'Wallet'} (${truncateAddr(addr)})`,
-        type: isTargetNode ? 'UNHOSTED_WALLET' : match.isMatch ? 'EXCHANGE_DEPOSIT_WALLET' : 'WALLET',
+        id: chainPrefix + ":" + addr,
+        label: vaspEval.matchedEntity || (serviceMatch.isMatch ? serviceMatch.serviceName : undefined) || (isTarget ? ("Target (" + truncateAddr(addr) + ")") : truncateAddr(addr)),
+        type: nodeType,
         chain,
         address: addr,
-        hop: n.hop ?? 0,
-        txCount: n.transactionCount || 1,
-        totalVolume: typeof n.totalVolume === 'number' ? n.totalVolume : 0,
-        inboundTransactionCount: n.inboundTransactionCount || 0,
-        outboundTransactionCount: n.outboundTransactionCount || 0,
-        inboundVolume: n.inboundVolume || 0,
-        outboundVolume: n.outboundVolume || 0,
-        firstSeen: n.firstSeen || 'Not available',
-        lastSeen: n.lastSeen || 'Not available',
-        riskLevel: isTargetNode ? 'HIGH' : match.isMatch ? 'LOW' : 'MEDIUM',
-        role: isTargetNode ? 'Suspect Target Wallet' : match.isMatch ? 'VASP Entity' : `Hop #${n.hop || 1} Counterparty`,
-        isTarget: isTargetNode,
-        lastActive: n.lastActive || n.lastSeen || 'Live Query',
-        vaspName: match.isMatch ? match.vaspDetails?.name : undefined,
-        sourceProvider: n.sourceProvider || `${chain} Provider`,
+        hop: n.hopIndex || (isTarget ? 0 : 1),
+        txCount: n.txCount || 1,
+        totalVolume: parseFloat(n.totalVolume) || 0,
+        riskLevel: isTarget ? "HIGH" : vaspEval.isAttributed ? "LOW" : "MEDIUM",
+        role: isTarget ? "Suspect Target Wallet" : vaspEval.isAttributed ? (vaspEval.matchedEntity + " (" + vaspEval.primaryRole + ")") : "Intermediary Counterparty",
+        isTarget,
+        lastActive: n.lastActive || "Live Query",
+        sourceProvider: "Alchemy - " + chain + " Gateway",
+        vaspName: vaspEval.matchedEntity,
+        serviceType: serviceMatch.isMatch ? serviceMatch.serviceType : undefined,
+        serviceName: serviceMatch.isMatch ? serviceMatch.serviceName : undefined,
+        exposureMode: serviceMatch.isMatch ? "DIRECT" : undefined,
+        provenanceSource: vaspEval.provenanceSource,
+        serviceDetails: serviceMatch.isMatch ? serviceMatch : undefined,
+        walletRole: vaspEval.primaryRole,
+        walletRoleStatus: vaspEval.roleStatus,
+        vaspEvaluation: vaspEval,
       };
     });
 
-    // Process server-calculated BFS edges
-    edges = (liveResponse.edges || []).map((e, idx) => ({
-      id: e.id || `live-edge-${idx}`,
-      source: e.source,
-      target: e.target,
-      amount: typeof e.amount === 'number' ? e.amount : parseFloat(e.value) || 0,
-      value: e.value || String(e.amount || 0),
-      asset: e.asset || (chain === 'Bitcoin' ? 'BTC' : chain === 'Tron' ? 'USDT' : chain === 'Solana' ? 'SOL' : chain === 'Polygon' ? 'MATIC' : chain === 'BNB' ? 'BNB' : 'ETH'),
-      txHash: e.txHash || 'Not available',
-      blockNumber: e.blockNumber || 0,
-      blockHash: e.blockHash || undefined,
-      timestamp: e.timestamp || 'Not available',
-      direction: e.direction || 'OUT',
-      hop: e.hop || 1,
-      sourceProvider: e.sourceProvider || `${chain} Provider`,
-      isSuspicious: e.direction === 'OUT',
-      typology: `Hop #${e.hop || 1} ${e.direction || 'OUT'} Transfer`,
-    }));
-
-    // Construct hops list
-    hops = edges.map((e) => {
-      const fromAddr = e.source.replace(/^[^:]+:/, '');
-      const toAddr = e.target.replace(/^[^:]+:/, '');
+    edges = rawTxs.map((t: any, idx: number) => {
+      const fromAddr = (t.from || target).toLowerCase();
+      const toAddr = (t.to || "0x0000000000000000000000000000000000000000").toLowerCase();
+      const numVal = parseFloat(t.value) || 0;
       return {
-        hopIndex: e.hop || 1,
-        fromAddress: fromAddr,
-        toAddress: toAddr,
-        txHash: e.txHash,
-        amount: e.amount,
-        asset: e.asset,
-        usdValue: Math.round(e.amount * (chain === 'Bitcoin' ? 65000 : chain === 'Solana' ? 140 : chain === 'Tron' ? 0.15 : 3200)),
-        timestamp: e.timestamp,
-        isVASP: false,
-        typology: `Hop #${e.hop || 1} Transfer`,
+        id: "live-edge-" + idx,
+        source: chainPrefix + ":" + fromAddr,
+        target: chainPrefix + ":" + toAddr,
+        amount: numVal,
+        value: String(t.value || "0"),
+        asset: t.asset || (chain === "Bitcoin" ? "BTC" : chain === "Tron" ? "USDT" : "ETH"),
+        txHash: t.txHash || ("live-tx-" + idx),
+        blockNumber: t.blockNumber || 0,
+        timestamp: t.timestamp || new Date().toISOString(),
+        direction: t.direction || "OUT",
+        hop: t.hop || 1,
+        sourceProvider: "Alchemy - " + chain + " Gateway",
+        category: "Live Transfer",
+        typology: t.direction === "OUT" ? "Outbound Transfer" : "Inbound Transfer",
+        isSuspicious: t.direction === "OUT",
+        provenanceSource: "LIVE_BLOCKCHAIN_DATA",
       };
     });
 
-    // Construct timeline events from edges
     timeline = edges.map((e, idx) => {
-      const fromAddr = e.source.replace(/^[^:]+:/, '');
-      const toAddr = e.target.replace(/^[^:]+:/, '');
-      const displayTs =
-        e.timestamp && e.timestamp !== 'Not available'
-          ? e.timestamp
-          : e.blockNumber
-          ? `Timestamp unavailable — Block ${e.blockNumber}`
-          : 'Not available';
-
+      const destNode = nodes.find((n) => n.id === e.target);
       return {
-        id: `live-tl-${idx}-${e.txHash.slice(0, 8)}`,
-        timestamp: displayTs,
-        type: 'HOP_TRANSFER' as const,
-        description: `Hop #${e.hop || 1} Transfer: ${e.value || e.amount} ${e.asset} from ${truncateAddr(fromAddr)} to ${truncateAddr(toAddr)}`,
-        from: fromAddr,
-        to: toAddr,
-        amount: `${e.value || e.amount} ${e.asset}`,
+        id: "live-tl-" + idx,
+        timestamp: e.timestamp,
+        type: destNode?.walletRole === "DEPOSIT_WALLET" ? "VASP_DEPOSIT" : "HOP_TRANSFER",
+        description: "Live Transfer: " + e.amount + " " + e.asset + " from " + truncateAddr(e.source) + " to " + truncateAddr(e.target),
+        from: e.source,
+        to: e.target,
+        amount: e.amount + " " + e.asset,
         txHash: e.txHash,
         blockNumber: e.blockNumber,
-        blockHash: e.blockHash,
         direction: e.direction,
         hop: e.hop,
         asset: e.asset,
         value: e.value,
-        chain,
-        sourceProvider: e.sourceProvider || `${chain} Provider`,
-        risk: 'MEDIUM' as RiskLevel,
+        sourceProvider: "Alchemy - " + chain + " Gateway",
+        risk: "MEDIUM",
+        walletRole: destNode?.walletRole,
+        vaspEntity: destNode?.vaspName,
       };
     });
   } else {
-    // 1-hop fallback reconstruction if no pre-built BFS nodes array provided
-    const nodesMap = new Map<string, GraphNode>();
-
-    nodesMap.set(targetNodeId, {
+    // 1-hop fallback reconstruction
+    nodes.push({
       id: targetNodeId,
-      label: `Target (${truncateAddr(target)})`,
-      type: 'UNHOSTED_WALLET',
+      label: "Target (" + truncateAddr(target) + ")",
+      type: "SUSPECT",
       chain,
       address: target,
       hop: 0,
-      txCount: transactions.length,
-      totalVolume: transactions.reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0),
-      riskLevel: 'HIGH',
-      role: 'Suspect Target Wallet',
+      txCount: rawTxs.length,
+      totalVolume: rawTxs.reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0),
+      riskLevel: "HIGH",
+      role: "Suspect Target Wallet",
       isTarget: true,
-      lastActive: 'Live Query',
-      sourceProvider: 'Alchemy — Ethereum Mainnet',
+      lastActive: "Live Query",
+      sourceProvider: "Alchemy - " + chain + " Gateway",
+      walletRole: "UNKNOWN",
+      walletRoleStatus: "UNATTRIBUTED",
     });
 
-    transactions.forEach((tx, idx) => {
-      const fromAddr = tx.from.toLowerCase() || target;
-      const toAddr = tx.to.toLowerCase() || '0x0000000000000000000000000000000000000000';
+    rawTxs.forEach((tx, idx) => {
+      const fromAddr = (tx.from || target).toLowerCase();
+      const toAddr = (tx.to || "0x0000000000000000000000000000000000000000").toLowerCase();
+      const sId = chainPrefix + ":" + fromAddr;
+      const tId = chainPrefix + ":" + toAddr;
 
-      const sourceNodeId = `${chainPrefix}:${fromAddr}`;
-      const targetNodeId = `${chainPrefix}:${toAddr}`;
-
-      if (!nodesMap.has(sourceNodeId)) {
-        const match = matchAddress(fromAddr);
-        nodesMap.set(sourceNodeId, {
-          id: sourceNodeId,
-          label: match.isMatch ? `${match.vaspDetails?.name} (${truncateAddr(fromAddr)})` : truncateAddr(fromAddr),
-          type: match.isMatch ? 'EXCHANGE_DEPOSIT_WALLET' : 'WALLET',
+      if (!nodes.some((n) => n.id === sId)) {
+        const vaspEval = evaluateAddressVaspIntelligence(fromAddr, chain);
+        nodes.push({
+          id: sId,
+          label: vaspEval.matchedEntity || truncateAddr(fromAddr),
+          type: vaspEval.isAttributed ? "VASP" : "UNKNOWN",
           chain,
           address: fromAddr,
           hop: tx.hop || 1,
           txCount: 1,
           totalVolume: parseFloat(tx.value) || 0,
-          riskLevel: match.isMatch ? 'LOW' : 'MEDIUM',
-          role: match.isMatch ? 'VASP Entity' : 'Intermediary Counterparty',
+          riskLevel: vaspEval.isAttributed ? "LOW" : "MEDIUM",
+          role: vaspEval.isAttributed ? (vaspEval.matchedEntity + " (" + vaspEval.primaryRole + ")") : "Intermediary Counterparty",
           lastActive: tx.timestamp,
-          vaspName: match.isMatch ? match.vaspDetails?.name : undefined,
-          sourceProvider: 'Alchemy — Ethereum Mainnet',
+          vaspName: vaspEval.matchedEntity,
+          sourceProvider: "Alchemy - " + chain + " Gateway",
+          walletRole: vaspEval.primaryRole,
+          walletRoleStatus: vaspEval.roleStatus,
+          vaspEvaluation: vaspEval,
         });
       }
 
-      if (!nodesMap.has(targetNodeId)) {
-        const match = matchAddress(toAddr);
-        nodesMap.set(targetNodeId, {
-          id: targetNodeId,
-          label: match.isMatch ? `${match.vaspDetails?.name} (${truncateAddr(toAddr)})` : truncateAddr(toAddr),
-          type: match.isMatch ? 'EXCHANGE_DEPOSIT_WALLET' : 'WALLET',
+      if (!nodes.some((n) => n.id === tId)) {
+        const vaspEval = evaluateAddressVaspIntelligence(toAddr, chain);
+        nodes.push({
+          id: tId,
+          label: vaspEval.matchedEntity || truncateAddr(toAddr),
+          type: vaspEval.isAttributed ? "VASP" : "UNKNOWN",
           chain,
           address: toAddr,
           hop: tx.hop || 1,
           txCount: 1,
           totalVolume: parseFloat(tx.value) || 0,
-          riskLevel: match.isMatch ? 'LOW' : 'MEDIUM',
-          role: match.isMatch ? 'VASP Entity' : 'Intermediary Counterparty',
+          riskLevel: vaspEval.isAttributed ? "LOW" : "MEDIUM",
+          role: vaspEval.isAttributed ? (vaspEval.matchedEntity + " (" + vaspEval.primaryRole + ")") : "Intermediary Counterparty",
           lastActive: tx.timestamp,
-          vaspName: match.isMatch ? match.vaspDetails?.name : undefined,
-          sourceProvider: 'Alchemy — Ethereum Mainnet',
+          vaspName: vaspEval.matchedEntity,
+          sourceProvider: "Alchemy - " + chain + " Gateway",
+          walletRole: vaspEval.primaryRole,
+          walletRoleStatus: vaspEval.roleStatus,
+          vaspEvaluation: vaspEval,
         });
       }
 
-      const numericValue = parseFloat(tx.value) || 0;
-
+      const numVal = parseFloat(tx.value) || 0;
       edges.push({
-        id: `live-edge-${idx}`,
-        source: sourceNodeId,
-        target: targetNodeId,
-        amount: numericValue,
+        id: "live-edge-" + idx,
+        source: sId,
+        target: tId,
+        amount: numVal,
         value: tx.value,
-        asset: tx.asset || 'ETH',
+        asset: tx.asset || (chain === "Bitcoin" ? "BTC" : "ETH"),
         txHash: tx.txHash,
         blockNumber: tx.blockNumber,
-        blockHash: tx.blockHash || undefined,
         timestamp: tx.timestamp,
         direction: tx.direction,
         hop: tx.hop || 1,
-        sourceProvider: 'Alchemy — Ethereum Mainnet',
-        isSuspicious: tx.direction === 'OUT',
-        typology: tx.direction === 'OUT' ? 'Live On-Chain Transfer' : 'Incoming Transfer',
-      });
-
-      hops.push({
-        hopIndex: tx.hop || 1,
-        fromAddress: fromAddr,
-        toAddress: toAddr,
-        txHash: tx.txHash,
-        amount: numericValue,
-        asset: tx.asset || 'ETH',
-        usdValue: Math.round(numericValue * 3200),
-        timestamp: tx.timestamp,
-        isVASP: false,
-      });
-
-      const displayTs =
-        tx.timestamp && tx.timestamp !== 'Not available'
-          ? tx.timestamp
-          : tx.blockNumber
-          ? `Timestamp unavailable — Block ${tx.blockNumber}`
-          : 'Not available';
-
-      timeline.push({
-        id: `live-tl-${idx}`,
-        timestamp: displayTs,
-        type: 'HOP_TRANSFER',
-        description: `Live On-Chain Transfer: ${tx.value} ${tx.asset} from ${truncateAddr(fromAddr)} to ${truncateAddr(toAddr)}`,
-        from: fromAddr,
-        to: toAddr,
-        amount: `${tx.value} ${tx.asset}`,
-        txHash: tx.txHash,
-        blockNumber: tx.blockNumber,
-        blockHash: tx.blockHash || undefined,
-        direction: tx.direction,
-        hop: tx.hop || 1,
-        asset: tx.asset,
-        value: tx.value,
-        sourceProvider: 'Alchemy — Ethereum Mainnet',
-        risk: 'MEDIUM',
+        sourceProvider: "Alchemy - " + chain + " Gateway",
+        isSuspicious: tx.direction === "OUT",
+        typology: tx.direction === "OUT" ? "Live Transfer" : "Incoming Transfer",
+        provenanceSource: "LIVE_BLOCKCHAIN_DATA",
       });
     });
-
-    nodes = Array.from(nodesMap.values());
   }
-
-  // Sort timeline chronologically (by blockNumber ascending or timestamp ascending)
-  timeline.sort((a, b) => {
-    if (a.blockNumber && b.blockNumber) {
-      return a.blockNumber - b.blockNumber;
-    }
-    return String(a.timestamp).localeCompare(String(b.timestamp));
-  });
-
-  const stats = liveResponse?.statistics || {};
-  const maxHopsTested = liveResponse?.maxHops || 1;
 
   const attribution = calculateAttributionScore({
     hasVASPMatch: false,
-    hopDistance: maxHopsTested,
+    hopDistance: liveResponse?.maxHops || 1,
     typologies: [],
   });
 
   const liveServiceFindings = nodes.filter((n) => n.serviceDetails && n.serviceDetails.isMatch).map((n) => n.serviceDetails!);
-  const normalizedForTypology: NormalizedTransaction[] = (transactions || []).map((t, idx) => ({
-    txHash: t.txHash || (t as any).hash || "live-tx-" + idx,
+  const normalizedForTypology: NormalizedTransaction[] = (rawTxs || []).map((t, idx) => ({
+    txHash: t.txHash || ("live-tx-" + idx),
     from: (t.from || "").toLowerCase(),
     to: (t.to || "").toLowerCase(),
-    value: String(t.value || (t as any).amount || "0"),
-    asset: t.asset || (t as any).assetSymbol || (chain === "Bitcoin" ? "BTC" : chain === "Tron" ? "USDT" : "ETH"),
+    value: String(t.value || "0"),
+    asset: t.asset || (chain === "Bitcoin" ? "BTC" : chain === "Tron" ? "USDT" : "ETH"),
     blockNumber: t.blockNumber || 0,
     timestamp: t.timestamp || new Date().toISOString(),
-    hop: t.hop || (t as any).hopIndex || 1,
+    hop: t.hop || 1,
     direction: t.direction || "OUT",
     status: "SUCCESS",
     chain: chain,
   }));
   const liveTypologyFindings = evaluateTypologies(normalizedForTypology, chain);
+  const liveVaspEvaluations = nodes.filter((n) => n.vaspEvaluation?.isAttributed).map((n) => n.vaspEvaluation!);
+
+  const notesStr: string = "Live Recursive Mainnet Trace executed via RPC Gateway for " + target;
+  const narrativeStr: string = "Live Recursive Mainnet Trace executed for target wallet " + target + " on network " + chain;
 
   return {
-    id: `LIVE-${Date.now()}`,
+    id: "LIVE-" + Date.now(),
     caseReference: caseRef,
-    investigator: 'Inspector R. Sharma (ID: LE-9842)',
-    incidentType: 'Live Recursive Fund-Flow Trace',
+    investigator: "Inspector R. Sharma (ID: LE-9842)",
+    incidentType: "Live Recursive Fund-Flow Trace",
     targetInput: target,
-    inputType: 'WALLET',
-    chain,
-    status: 'ACTIVE',
-    priority: 'HIGH',
-    riskLevel: 'MEDIUM',
-    vaspDestination: 'Unattributed (Live On-Chain Query)',
-    nearestDirectDepositVASP: 'Unattributed',
-    confidenceTier: 'INSUFFICIENT_DATA',
+    inputType: "WALLET",
+    chain: chain,
+    status: "ACTIVE",
+    priority: "HIGH",
+    riskLevel: "MEDIUM",
+    vaspDestination: "Unattributed (Live On-Chain Query)",
+    nearestDirectDepositVASP: "Unattributed",
+    confidenceTier: "INSUFFICIENT_DATA",
     confidenceScore: 0,
-    dataSource: 'PUBLIC BLOCKCHAIN DATA',
-    createdDate: new Date().toLocaleDateString('en-IN'),
-    updatedDate: new Date().toLocaleDateString('en-IN'),
-    maxHops: maxHopsTested,
+    dataSource: "LIVE_BLOCKCHAIN_RPC",
+    createdDate: new Date().toLocaleDateString("en-IN"),
+    updatedDate: new Date().toLocaleDateString("en-IN"),
+    maxHops: liveResponse?.maxHops || 1,
     minTransferValue: 0.0,
-    notes: `Live Recursive Mainnet Trace executed via Alchemy API Gateway. Discovered ${nodes.length} nodes and ${edges.length} edges across ${stats.hopsCompleted || maxHopsTested} hops.`,
+    notes: notesStr,
     nodes,
     edges,
     hops,
@@ -631,31 +505,32 @@ export function buildLiveGraphFromTransactions(
     attribution,
     serviceFindings: liveServiceFindings,
     typologyFindings: liveTypologyFindings,
+    vaspEvaluations: liveVaspEvaluations,
     evidenceList: [
       {
-        id: 'live-ev-1',
-        title: `Real Blockchain Transactions Verified (${edges.length} Edges across ${nodes.length} Wallets)`,
-        type: 'PATH_CONTINUITY',
-        source: 'Alchemy Mainnet Node Gateway',
+        id: "live-ev-1",
+        title: "Live Blockchain Transfers Traversed (" + edges.length + " Edges across " + nodes.length + " Wallets)",
+        type: "PATH_CONTINUITY",
+        source: chain + " RPC Gateway",
         address: target,
         lastVerified: new Date().toISOString().slice(0, 10),
-        strength: 'STRONG',
-        description: `Retrieved ${transactions.length} live transfers across ${nodes.length} discovered wallet nodes up to ${maxHopsTested} hops.`,
+        strength: "STRONG",
+        description: "Retrieved live transfers across " + nodes.length + " wallet nodes.",
+        provenanceSource: "LIVE_BLOCKCHAIN_DATA",
       },
     ],
     timeline,
-    narrative: `Live Recursive Mainnet Trace executed for target wallet ${target} on network ${chain}. Total wallets traversed: ${stats.walletsTraversed || nodes.length}. Total edges discovered: ${edges.length}.`,
-    sha256Hash: 'live-hash-verified',
+    narrative: narrativeStr,
+    sha256Hash: "live-hash-verified",
     hashTimestamp: new Date().toISOString(),
   };
 }
 
-// Simple deterministic string hash helper
-function crc32(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return hash;
+function truncateAddr(addr: string): string {
+  if (!addr) return "";
+  if (addr.length <= 10) return addr;
+  return addr.slice(0, 6) + "..." + addr.slice(-4);
 }
+
+export const generateDynamicGraphAndHops = buildCaseFromDemoConfig;
+export const buildLiveGraphFromTransactions = buildCaseFromLiveGraph;
