@@ -1,38 +1,103 @@
 export type BlockchainType = 
-  | 'Ethereum' 
-  | 'Bitcoin' 
-  | 'Tron' 
-  | 'BNB' 
-  | 'Solana' 
-  | 'Polygon';
+  | "Ethereum" 
+  | "Bitcoin" 
+  | "Tron" 
+  | "BNB" 
+  | "Solana" 
+  | "Polygon";
 
 export type AttributionTier = 
-  | 'CONFIRMED' 
-  | 'HIGHLY_LIKELY' 
-  | 'PROBABLE' 
-  | 'POSSIBLE' 
-  | 'INSUFFICIENT_DATA';
+  | "CONFIRMED" 
+  | "HIGHLY_LIKELY" 
+  | "PROBABLE" 
+  | "POSSIBLE" 
+  | "INSUFFICIENT_DATA";
 
-export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export type ServiceType = 
-  | 'MIXER' 
-  | 'TUMBLER' 
-  | 'BRIDGE' 
-  | 'SWAP_SERVICE' 
-  | 'EXCHANGE' 
-  | 'CUSTODIAL_SERVICE' 
-  | 'DEFI_PROTOCOL' 
-  | 'UNKNOWN';
+  | "MIXER" 
+  | "TUMBLER" 
+  | "BRIDGE" 
+  | "SWAP_SERVICE" 
+  | "EXCHANGE" 
+  | "CUSTODIAL_SERVICE" 
+  | "DEFI_PROTOCOL" 
+  | "UNKNOWN";
 
-export type ExposureMode = 'DIRECT' | 'INDIRECT';
+export type ExposureMode = "DIRECT" | "INDIRECT";
 
 export type ProvenanceSource = 
-  | 'LIVE_BLOCKCHAIN_DATA' 
-  | 'CURATED_INTELLIGENCE' 
-  | 'KNOWN_SERVICE_DATABASE' 
-  | 'DERIVED_BEHAVIORAL_RULE' 
-  | 'DEMO_FIXTURE';
+  | "LIVE_BLOCKCHAIN_DATA" 
+  | "CURATED_INTELLIGENCE" 
+  | "KNOWN_SERVICE_DATABASE" 
+  | "DERIVED_BEHAVIORAL_RULE" 
+  | "DEMO_FIXTURE";
+
+export type WalletRole = 
+  | "DEPOSIT_WALLET" 
+  | "HOT_WALLET" 
+  | "COLD_WALLET" 
+  | "TREASURY" 
+  | "OPERATIONAL" 
+  | "UNKNOWN";
+
+export type WalletRoleStatus = 
+  | "KNOWN_INTELLIGENCE_MATCH" 
+  | "HOT_WALLET_INDICATOR" 
+  | "COLD_WALLET_INDICATOR" 
+  | "BEHAVIORAL_HEURISTIC" 
+  | "UNATTRIBUTED";
+
+export type AttributionConfidenceLevel = 
+  | "VERIFIED" 
+  | "HIGH_CONFIDENCE" 
+  | "PROBABLE" 
+  | "POSSIBLE" 
+  | "INSUFFICIENT_DATA";
+
+export interface VASPClusterInfo {
+  clusterId: string;
+  clusterName: string;
+  entityName: string;
+  primaryRole: WalletRole;
+  memberCount?: number;
+  description: string;
+}
+
+export interface AttributionCandidate {
+  vaspKey: string;
+  vaspName: string;
+  entityType: "VASP" | "EXCHANGE" | "CUSTODIAL_SERVICE" | "OTHER_SERVICE";
+  walletRole: WalletRole;
+  confidenceScore: number;
+  confidenceLevel: AttributionConfidenceLevel;
+  evidence: string[];
+  provenanceSource: ProvenanceSource;
+  reasons: string[];
+  limitations: string;
+}
+
+export interface VASPEvaluationResult {
+  isAttributed: boolean;
+  matchedEntity?: string;
+  vaspKey?: string;
+  entityType: "VASP" | "EXCHANGE" | "CUSTODIAL_SERVICE" | "OTHER_SERVICE" | "UNKNOWN";
+  primaryRole: WalletRole;
+  additionalRoles?: WalletRole[];
+  roleStatus: WalletRoleStatus;
+  confidenceLevel: AttributionConfidenceLevel;
+  confidenceScore: number;
+  clusterInfo?: VASPClusterInfo;
+  jurisdiction?: string;
+  complianceContact?: string;
+  isDomestic?: boolean;
+  provenanceSource: ProvenanceSource;
+  reasons: string[];
+  limitations: string;
+  candidates: AttributionCandidate[];
+  disclaimer: string;
+}
 
 export interface NetworkMatch {
   chain: string;
@@ -49,7 +114,7 @@ export interface NetworkMatch {
 export interface ChainResolutionResult {
   address: string;
   isValidAddress: boolean;
-  status: 'RESOLVED' | 'MULTIPLE_NETWORKS' | 'NO_ACTIVITY' | 'LIVE_DATA_UNAVAILABLE' | 'INVALID_ADDRESS';
+  status: "RESOLVED" | "MULTIPLE_NETWORKS" | "NO_ACTIVITY" | "LIVE_DATA_UNAVAILABLE" | "INVALID_ADDRESS";
   matches: NetworkMatch[];
   message?: string;
 }
@@ -67,6 +132,8 @@ export interface ServiceMatchResult {
   complianceContact?: string;
   isSanctioned?: boolean;
   disclaimer?: string;
+  exposureMode?: ExposureMode;
+  matchedAddress?: string;
 }
 
 export interface SahyogPayload {

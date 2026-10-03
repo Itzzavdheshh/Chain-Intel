@@ -1,98 +1,62 @@
-export type BlockchainType = 
-  | 'Ethereum' 
-  | 'Bitcoin' 
-  | 'Tron' 
-  | 'BNB' 
-  | 'Solana' 
-  | 'Polygon';
+export * from "../../../shared/types/index";
 
-export type DataSourceTag = 
-  | 'LIVE' 
-  | 'PUBLIC BLOCKCHAIN DATA' 
-  | 'KNOWN ADDRESS INTELLIGENCE' 
-  | 'DEMO' 
-  | 'REPRESENTATIVE DATA';
-
-export type AttributionTier = 
-  | 'CONFIRMED' 
-  | 'HIGHLY_LIKELY' 
-  | 'PROBABLE' 
-  | 'POSSIBLE' 
-  | 'INSUFFICIENT_DATA';
-
-export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+import { 
+  BlockchainType, 
+  RiskLevel, 
+  ServiceType, 
+  ExposureMode, 
+  ProvenanceSource, 
+  ServiceMatchResult, 
+  AttributionTier,
+  WalletRole,
+  WalletRoleStatus,
+  VASPEvaluationResult
+} from "../../../shared/types/index";
 
 export type NodeType = 
-  | 'WALLET' 
-  | 'UNHOSTED_WALLET'
-  | 'EXCHANGE_DEPOSIT_WALLET'
-  | 'EXCHANGE_HOT_WALLET'
-  | 'EXCHANGE_CLUSTER'
-  | 'VASP' 
-  | 'MIXER_TUMBLER' 
-  | 'DEFI_BRIDGE' 
-  | 'CROSS_CHAIN_SWAP_SERVICE'
-  | 'SWAP_SERVICE'
-  | 'CONTRACT' 
-  | 'UNKNOWN';
+  | "UNKNOWN" 
+  | "SUSPECT" 
+  | "VASP" 
+  | "MIXER" 
+  | "BRIDGE" 
+  | "EXCHANGE" 
+  | "HIGH_RISK_ENTITY" 
+  | "SWAP_SERVICE"
+  | "DEPOSIT_WALLET"
+  | "HOT_WALLET"
+  | "COLD_WALLET"
+  | "TREASURY"
+  | "UNHOSTED_WALLET"
+  | "EXCHANGE_DEPOSIT_WALLET"
+  | "EXCHANGE_HOT_WALLET"
+  | "MIXER_TUMBLER"
+  | "DEFI_BRIDGE"
+  | "CROSS_CHAIN_SWAP_SERVICE"
+  | "WALLET";
 
-export type ServiceType = 
-  | 'MIXER' 
-  | 'TUMBLER' 
-  | 'BRIDGE' 
-  | 'SWAP_SERVICE' 
-  | 'EXCHANGE' 
-  | 'CUSTODIAL_SERVICE' 
-  | 'DEFI_PROTOCOL' 
-  | 'UNKNOWN';
+export type DataSourceTag = "LIVE_BLOCKCHAIN_RPC" | "SIMULATED_DEMO_PRESET" | "PUBLIC BLOCKCHAIN DATA" | "DEMO";
 
-export type ExposureMode = 'DIRECT' | 'INDIRECT';
-
-export type ProvenanceSource = 
-  | 'LIVE_BLOCKCHAIN_DATA' 
-  | 'CURATED_INTELLIGENCE' 
-  | 'KNOWN_SERVICE_DATABASE' 
-  | 'DERIVED_BEHAVIORAL_RULE' 
-  | 'DEMO_FIXTURE';
-
-export type TypologySeverity = 'INFO' | 'MODERATE' | 'HIGH' | 'CRITICAL';
+export type TypologySeverity = "INFO" | "MODERATE" | "HIGH" | "CRITICAL";
 
 export type TypologyCode = 
-  | 'PEEL_CHAIN' 
-  | 'LAYERING' 
-  | 'RAPID_CONSOLIDATION' 
-  | 'CHAIN_HOPPING' 
-  | 'MIXER_INTERACTION'
-  | 'RANSOMWARE_OUTFLOW'
-  | 'DARKNET_PROCEEDS'
-  | 'TERRORISM_FINANCING_RISK'
-  | 'RAPID_MOVEMENT'
-  | 'SPLITTING'
-  | 'CONSOLIDATION'
-  | 'STRUCTURING';
+  | "PEEL_CHAIN" 
+  | "LAYERING" 
+  | "RAPID_CONSOLIDATION" 
+  | "CHAIN_HOPPING" 
+  | "MIXER_INTERACTION"
+  | "RANSOMWARE_OUTFLOW"
+  | "DARKNET_PROCEEDS"
+  | "TERRORISM_FINANCING_RISK"
+  | "RAPID_MOVEMENT"
+  | "SPLITTING"
+  | "CONSOLIDATION"
+  | "STRUCTURING";
 
 export type CooperationPriority = 
-  | 'DOMESTIC' 
-  | 'CROSS_BORDER_STANDARD' 
-  | 'CROSS_BORDER_PRIORITY' 
-  | 'URGENT_REVIEW';
-
-export interface ServiceMatchResult {
-  isMatch: boolean;
-  serviceKey?: string;
-  serviceName?: string;
-  serviceType: ServiceType;
-  category: string;
-  provenanceSource: ProvenanceSource;
-  confidenceScore: number;
-  explanation: string;
-  jurisdiction?: string;
-  complianceContact?: string;
-  isSanctioned?: boolean;
-  disclaimer?: string;
-  exposureMode?: ExposureMode;
-  matchedAddress?: string;
-}
+  | "DOMESTIC" 
+  | "CROSS_BORDER_STANDARD" 
+  | "CROSS_BORDER_PRIORITY" 
+  | "URGENT_REVIEW";
 
 export interface TypologyFinding {
   id: string;
@@ -141,7 +105,7 @@ export interface VASPMatch {
 export interface ScoringFactor {
   label: string;
   impact: number;
-  type: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+  type: "POSITIVE" | "NEGATIVE" | "NEUTRAL";
   category: string;
   description: string;
 }
@@ -216,6 +180,9 @@ export interface GraphNode {
   exposureMode?: ExposureMode;
   provenanceSource?: ProvenanceSource;
   serviceDetails?: ServiceMatchResult;
+  walletRole?: WalletRole;
+  walletRoleStatus?: WalletRoleStatus;
+  vaspEvaluation?: VASPEvaluationResult;
 }
 
 export interface GraphEdge {
@@ -229,7 +196,7 @@ export interface GraphEdge {
   blockNumber?: number;
   blockHash?: string;
   timestamp: string;
-  direction?: 'IN' | 'OUT';
+  direction?: "IN" | "OUT";
   hop?: number;
   sourceProvider?: string;
   category?: string;
@@ -245,7 +212,7 @@ export interface HighRiskAlert {
   severity: RiskLevel;
   walletAddress: string;
   chain: BlockchainType;
-  alertType: 'RANSOMWARE' | 'DARKNET_MARKET' | 'TERRORISM_FINANCING' | 'SANCTIONED_MIXER' | 'FRAUD_SCAM';
+  alertType: "RANSOMWARE" | "DARKNET_MARKET" | "TERRORISM_FINANCING" | "SANCTIONED_MIXER" | "FRAUD_SCAM";
   evidence: string;
   source: string;
   timestamp: string;
@@ -256,13 +223,13 @@ export interface HighRiskAlert {
 export interface EvidenceItem {
   id: string;
   title: string;
-  type: 'ADDRESS_MATCH' | 'PATH_CONTINUITY' | 'TYPOLOGY_FLAG' | 'VERIFICATION_AGE' | 'CLUSTER_RELATION' | 'DIRECT_DEPOSIT_MATCH' | 'SERVICE_INTELLIGENCE';
+  type: "ADDRESS_MATCH" | "PATH_CONTINUITY" | "TYPOLOGY_FLAG" | "VERIFICATION_AGE" | "CLUSTER_RELATION" | "DIRECT_DEPOSIT_MATCH" | "SERVICE_INTELLIGENCE";
   source: string;
   address?: string;
   txHash?: string;
   hopIndex?: number;
   lastVerified: string;
-  strength: 'STRONG' | 'MODERATE' | 'WEAK';
+  strength: "STRONG" | "MODERATE" | "WEAK";
   description: string;
   provenanceSource?: ProvenanceSource;
   isServiceMatch?: boolean;
@@ -272,7 +239,7 @@ export interface EvidenceItem {
 export interface ForensicTimelineEvent {
   id: string;
   timestamp: string;
-  type: 'FUND_RECEIVED' | 'HOP_TRANSFER' | 'SPLIT_TRANSACTION' | 'MIXER_ENTRY' | 'BRIDGE_LOCK' | 'VASP_DEPOSIT' | 'DIRECT_DEPOSIT_SWEEP' | 'SERVICE_INTERACTION' | 'RAPID_MOVEMENT';
+  type: "FUND_RECEIVED" | "HOP_TRANSFER" | "SPLIT_TRANSACTION" | "MIXER_ENTRY" | "BRIDGE_LOCK" | "VASP_DEPOSIT" | "DIRECT_DEPOSIT_SWEEP" | "SERVICE_INTERACTION" | "RAPID_MOVEMENT";
   description: string;
   from: string;
   to: string;
@@ -282,7 +249,7 @@ export interface ForensicTimelineEvent {
   hop?: number;
   blockNumber?: number;
   blockHash?: string;
-  direction?: 'IN' | 'OUT';
+  direction?: "IN" | "OUT";
   asset?: string;
   value?: string;
   chain?: BlockchainType;
@@ -290,6 +257,8 @@ export interface ForensicTimelineEvent {
   provenanceSource?: ProvenanceSource;
   serviceType?: ServiceType;
   exposureMode?: ExposureMode;
+  walletRole?: WalletRole;
+  vaspEntity?: string;
 }
 
 export interface AuditLogEntry {
@@ -302,30 +271,16 @@ export interface AuditLogEntry {
   ipAddress: string;
 }
 
-export interface SahyogPayload {
-  caseReference: string;
-  agency: string;
-  investigatorId: string;
-  targetWallet: string;
-  blockchain: BlockchainType;
-  nearestDirectDepositVASP: string;
-  confidenceTier: AttributionTier;
-  confidenceScore: number;
-  evidenceSummary: string;
-  reportHash: string;
-  timestamp: string;
-}
-
 export interface InvestigationCase {
   id: string;
   caseReference: string;
   investigator: string;
   incidentType: string;
   targetInput: string;
-  inputType: 'WALLET' | 'TX_HASH';
+  inputType: "WALLET" | "TX_HASH";
   chain: BlockchainType;
-  status: 'ACTIVE' | 'COMPLETED' | 'PENDING' | 'NEEDS_REVIEW';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  status: "ACTIVE" | "COMPLETED" | "PENDING" | "NEEDS_REVIEW";
+  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   riskLevel: RiskLevel;
   vaspDestination: string;
   nearestDirectDepositVASP: string;
@@ -350,18 +305,19 @@ export interface InvestigationCase {
   hashTimestamp?: string;
   serviceFindings?: ServiceMatchResult[];
   typologyFindings?: TypologyFinding[];
+  vaspEvaluations?: VASPEvaluationResult[];
 }
 
 export interface BatchCaseRecord {
   caseId: string;
   walletAddress: string;
   chain: BlockchainType;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   notes: string;
-  status?: 'COMPLETED' | 'FAILED' | 'PENDING';
+  status?: "COMPLETED" | "FAILED" | "PENDING";
   risk?: RiskLevel;
   vaspMatch?: string;
   confidenceScore?: number;
 }
 
-export * from './settings';
+export * from "./settings";
