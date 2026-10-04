@@ -117,6 +117,56 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ currentCase }) => 
           </div>
         )}
 
+        
+        {/* Phase 7 Cross-Chain Correlations Section */}
+        {currentCase.crossChainCorrelations && currentCase.crossChainCorrelations.length > 0 && (
+          <div className="mb-6 space-y-3">
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1 flex items-center justify-between">
+              <span>Cross-Chain Correlation Evidence</span>
+              <span className="text-[10px] font-mono font-normal text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                Phase 7 Multi-Chain Correlation
+              </span>
+            </h3>
+            <table className="w-full text-left text-xs border border-slate-200">
+              <thead className="bg-slate-100 text-slate-700 uppercase font-semibold text-[10px]">
+                <tr>
+                  <th className="p-2 border-b border-slate-200">Source Chain</th>
+                  <th className="p-2 border-b border-slate-200">Dest Chain</th>
+                  <th className="p-2 border-b border-slate-200">Method</th>
+                  <th className="p-2 border-b border-slate-200">Status</th>
+                  <th className="p-2 border-b border-slate-200">Time / Value Delta</th>
+                  <th className="p-2 border-b border-slate-200">Evidentiary Limitations</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 font-mono text-[11px]">
+                {currentCase.crossChainCorrelations.map((ccc, i) => (
+                  <tr key={i}>
+                    <td className="p-2 font-bold text-slate-900">{ccc.sourceChain.toUpperCase()}</td>
+                    <td className="p-2 font-bold text-amber-700">{ccc.destinationChain ? ccc.destinationChain.toUpperCase() : 'UNESTABLISHED'}</td>
+                    <td className="p-2 text-purple-900 font-semibold">{ccc.correlationMethod}</td>
+                    <td className="p-2">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        ccc.correlationStatus === 'CONFIRMED_BRIDGE_TRANSFER' ? 'bg-emerald-100 text-emerald-800' :
+                        ccc.correlationStatus === 'POTENTIAL_CORRELATION' ? 'bg-blue-100 text-blue-800' :
+                        'bg-amber-100 text-amber-800'
+                      }`}>
+                        {ccc.correlationStatus}
+                      </span>
+                    </td>
+                    <td className="p-2 text-slate-700 text-[10px]">
+                      {ccc.observedTimeDeltaSeconds !== undefined ? `Δt: ${ccc.observedTimeDeltaSeconds}s` : 'N/A'}
+                      {ccc.observedValueDeltaPercent !== undefined ? ` | Δv: ${ccc.observedValueDeltaPercent}%` : ''}
+                    </td>
+                    <td className="p-2 text-slate-600 font-sans text-[10px] italic">
+                      {ccc.limitations}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {/* Hop-by-Hop Trace Table */}
         <div className="mb-6">
           <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1 mb-2">
