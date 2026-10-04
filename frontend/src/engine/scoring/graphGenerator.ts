@@ -1,10 +1,11 @@
-import { InvestigationCase, GraphNode, GraphEdge, HopDetail, ForensicTimelineEvent, BlockchainType, RiskLevel, ServiceType } from "../../types";
+import { InvestigationCase, GraphNode, GraphEdge, HopDetail, ForensicTimelineEvent, BlockchainType, RiskLevel, ServiceType, CrossChainCorrelation } from "../../types";
 import { calculateAttributionScore } from "./scoringEngine";
 import { matchAddress } from "../vasp/vaspDatabase";
 import { classifyAddressService } from "../service/serviceIntelligence";
 import { evaluateTypologies } from "../typology/typologyEngine";
 import { NormalizedTransaction } from "../adapters/types";
 import { evaluateAddressVaspIntelligence } from "../vasp/vaspIntelligenceEngine";
+import { correlateCrossChainEvent, TargetTxCandidate } from "../correlation/crossChainCorrelationEngine";
 
 export interface DemoCaseConfig {
   id?: string;
@@ -21,8 +22,8 @@ export interface DemoCaseConfig {
 }
 
 export function buildCaseFromDemoConfig(config: DemoCaseConfig): InvestigationCase {
-  const caseId: string = config.id || "CASE-" + Date.now();
-  const caseRef: string = config.caseReference || "CASE-2026-" + Math.floor(1000 + Math.random() * 9000);
+  const caseId: string = config.id || ("CASE-" + Date.now());
+  const caseRef: string = config.caseReference || ("CASE-2026-" + Math.floor(1000 + Math.random() * 9000));
   const targetWallet: string = config.targetWallet || config.targetInput || "0x71C765EC7ab88b098defb751b7401b5f6d8976f";
   const chain: BlockchainType = config.chain || "Ethereum";
   const primaryVaspName: string = config.primaryVaspName || "CoinDCX India";
@@ -157,6 +158,44 @@ export function buildCaseFromDemoConfig(config: DemoCaseConfig): InvestigationCa
     };
   });
 
+  // Evaluate Cross-Chain Correlations
+  const crossChainCorrelations: CrossChainCorrelation[] = [];
+  const bridgeNode = nodes.find((n) => n.serviceType === "BRIDGE" || n.type === "DEFI_BRIDGE" || n.type === "CROSS_CHAIN_BRIDGE");
+  if (bridgeNode) {
+    const bridgeEdge = edges.find((e) => e.target === bridgeNode.id || e.source === bridgeNode.id);
+    if (bridgeEdge) {
+      const candidates: TargetTxCandidate[] = [];
+      const destEdge = edges.find((e) => e.source === bridgeNode.id);
+      if (destEdge) {
+        const destNode = nodes.find((n) => n.id === destEdge.target);
+        candidates.push({
+          txHash: destEdge.txHash,
+          chain: destNode?.chain || "Polygon",
+          address: bridgeNode.address || "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+          toAddress: destNode?.address || "0x0d0707963952f2a77298587ab17fa5b169528d9c",
+          amount: destEdge.amount,
+          asset: destEdge.asset,
+          timestamp: destEdge.timestamp,
+          bridgeMetadataRef: "synapse_event_lock_ref",
+        });
+      }
+
+      const foundCorrs = correlateCrossChainEvent(
+        {
+          txHash: bridgeEdge.txHash,
+          chain: chain,
+          address: nodes.find((n) => n.id === bridgeEdge.source)?.address || targetWallet,
+          toAddress: bridgeNode.address || "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+          amount: bridgeEdge.amount,
+          asset: bridgeEdge.asset,
+          timestamp: bridgeEdge.timestamp,
+        },
+        candidates
+      );
+      crossChainCorrelations.push(...foundCorrs);
+    }
+  }
+
   const attribution = calculateAttributionScore({
     hasVASPMatch: true,
     vaspDetails: matchAddress("0x71c765ec7ab88b098defb751b7401b5f6d8976f").vaspDetails,
@@ -181,15 +220,11 @@ export function buildCaseFromDemoConfig(config: DemoCaseConfig): InvestigationCa
   const demoTypologyFindings = evaluateTypologies(normalizedForTypology, chain);
   const vaspEvaluations = nodes.filter((n) => n.vaspEvaluation?.isAttributed).map((n) => n.vaspEvaluation!);
 
-  const incidentTypeStr: string = config.incidentType || "Simulated Fund-Flow Trace";
-  const notesStr: string = "Investigation case pre-populated with deterministic node topology for " + primaryVaspName;
-  const narrativeStr: string = "Deterministic trace executed for suspect wallet " + targetWallet + " on " + chain + ". Funds traversed " + edges.length + " hops before terminating at verified " + primaryVaspName + " deposit infrastructure.";
-
   return {
     id: caseId,
     caseReference: caseRef,
     investigator: "Inspector R. Sharma (ID: LE-9842)",
-    incidentType: incidentTypeStr,
+    incidentType: config.incidentType || "Simulated Fund-Flow Trace",
     targetInput: targetWallet,
     inputType: "WALLET",
     chain: chain,
@@ -205,7 +240,7 @@ export function buildCaseFromDemoConfig(config: DemoCaseConfig): InvestigationCa
     updatedDate: "2026-09-15",
     maxHops: edges.length,
     minTransferValue: 0.1,
-    notes: notesStr,
+    notes: "Investigation case pre-populated with deterministic node topology for " + primaryVaspName,
     nodes,
     edges,
     hops,
@@ -214,6 +249,7 @@ export function buildCaseFromDemoConfig(config: DemoCaseConfig): InvestigationCa
     serviceFindings: demoServiceFindings,
     typologyFindings: demoTypologyFindings,
     vaspEvaluations,
+    crossChainCorrelations,
     evidenceList: [
       {
         id: "ev-1",
@@ -229,7 +265,7 @@ export function buildCaseFromDemoConfig(config: DemoCaseConfig): InvestigationCa
       },
     ],
     timeline,
-    narrative: narrativeStr,
+    narrative: "Deterministic trace executed for suspect wallet " + targetWallet + " on " + chain + ". Funds traversed " + edges.length + " hops before terminating at verified " + primaryVaspName + " deposit infrastructure.",
     sha256Hash: "demo-hash-verified",
     hashTimestamp: new Date().toISOString(),
   };
@@ -451,6 +487,27 @@ export function buildCaseFromLiveGraph(
     });
   }
 
+  // Live Cross-Chain Evaluation (Evaluates bridge transactions against destination candidates)
+  const crossChainCorrelations: CrossChainCorrelation[] = [];
+  edges.forEach((edge) => {
+    const destNode = nodes.find((n) => n.id === edge.target);
+    if (destNode && destNode.serviceType === "BRIDGE") {
+      const found = correlateCrossChainEvent(
+        {
+          txHash: edge.txHash,
+          chain: chain,
+          address: nodes.find((n) => n.id === edge.source)?.address || target,
+          toAddress: destNode.address || "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+          amount: edge.amount,
+          asset: edge.asset,
+          timestamp: edge.timestamp,
+        },
+        [] // RPC candidates unestablished unless explicit event metadata returned
+      );
+      crossChainCorrelations.push(...found);
+    }
+  });
+
   const attribution = calculateAttributionScore({
     hasVASPMatch: false,
     hopDistance: liveResponse?.maxHops || 1,
@@ -474,9 +531,6 @@ export function buildCaseFromLiveGraph(
   const liveTypologyFindings = evaluateTypologies(normalizedForTypology, chain);
   const liveVaspEvaluations = nodes.filter((n) => n.vaspEvaluation?.isAttributed).map((n) => n.vaspEvaluation!);
 
-  const notesStr: string = "Live Recursive Mainnet Trace executed via RPC Gateway for " + target;
-  const narrativeStr: string = "Live Recursive Mainnet Trace executed for target wallet " + target + " on network " + chain;
-
   return {
     id: "LIVE-" + Date.now(),
     caseReference: caseRef,
@@ -497,7 +551,7 @@ export function buildCaseFromLiveGraph(
     updatedDate: new Date().toLocaleDateString("en-IN"),
     maxHops: liveResponse?.maxHops || 1,
     minTransferValue: 0.0,
-    notes: notesStr,
+    notes: "Live Recursive Mainnet Trace executed via RPC Gateway for " + target,
     nodes,
     edges,
     hops,
@@ -506,6 +560,7 @@ export function buildCaseFromLiveGraph(
     serviceFindings: liveServiceFindings,
     typologyFindings: liveTypologyFindings,
     vaspEvaluations: liveVaspEvaluations,
+    crossChainCorrelations,
     evidenceList: [
       {
         id: "live-ev-1",
@@ -520,7 +575,7 @@ export function buildCaseFromLiveGraph(
       },
     ],
     timeline,
-    narrative: narrativeStr,
+    narrative: "Live Recursive Mainnet Trace executed for target wallet " + target + " on network " + chain,
     sha256Hash: "live-hash-verified",
     hashTimestamp: new Date().toISOString(),
   };
