@@ -56,6 +56,61 @@ export type AttributionConfidenceLevel =
   | "POSSIBLE" 
   | "INSUFFICIENT_DATA";
 
+export type CorrelationSignal = 
+  | "KNOWN_BRIDGE_MATCH"
+  | "SERVICE_IDENTITY_MATCH"
+  | "TEMPORAL_PROXIMITY"
+  | "VALUE_PROXIMITY"
+  | "ASSET_RELATIONSHIP"
+  | "DESTINATION_REFERENCE"
+  | "BRIDGE_EVENT_CORRELATION"
+  | "TOKEN_MINT_BURN_RELATIONSHIP"
+  | "PROVIDER_METADATA"
+  | "CURATED_INTELLIGENCE";
+
+export type CorrelationMethod = 
+  | "EXPLICIT_SERVICE_CORRELATION"
+  | "BRIDGE_EVENT_CORRELATION"
+  | "TEMPORAL_VALUE_CORRELATION"
+  | "SERVICE_ONLY_CORRELATION";
+
+export type CorrelationStatus = 
+  | "CONFIRMED_BRIDGE_TRANSFER" 
+  | "POTENTIAL_CORRELATION" 
+  | "SERVICE_INTERACTION_ONLY" 
+  | "UNESTABLISHED";
+
+export interface CrossChainCorrelation {
+  id: string;
+  sourceChain: BlockchainType;
+  sourceTxHash: string;
+  sourceAddress: string;
+  sourceAsset: string;
+  sourceAmount: number;
+  sourceTimestamp: string;
+
+  destinationChain?: BlockchainType;
+  destinationTxHash?: string;
+  destinationAddress?: string;
+  destinationAsset?: string;
+  destinationAmount?: number;
+  destinationTimestamp?: string;
+
+  bridgeServiceKey?: string;
+  bridgeServiceName?: string;
+  correlationMethod: CorrelationMethod;
+  correlationSignals: CorrelationSignal[];
+  correlationStatus: CorrelationStatus;
+  observedTimeDeltaSeconds?: number;
+  observedValueDeltaPercent?: number;
+  confidenceLevel: AttributionConfidenceLevel;
+  confidenceScore: number;
+  provenanceSource: ProvenanceSource;
+  reasons: string[];
+  limitations: string;
+  disclaimer: string;
+}
+
 export interface VASPClusterInfo {
   clusterId: string;
   clusterName: string;

@@ -10,7 +10,9 @@ import {
   AttributionTier,
   WalletRole,
   WalletRoleStatus,
-  VASPEvaluationResult
+  VASPEvaluationResult,
+  CrossChainCorrelation,
+  CorrelationMethod
 } from "../../../shared/types/index";
 
 export type NodeType = 
@@ -32,6 +34,7 @@ export type NodeType =
   | "MIXER_TUMBLER"
   | "DEFI_BRIDGE"
   | "CROSS_CHAIN_SWAP_SERVICE"
+  | "CROSS_CHAIN_BRIDGE"
   | "WALLET";
 
 export type DataSourceTag = "LIVE_BLOCKCHAIN_RPC" | "SIMULATED_DEMO_PRESET" | "PUBLIC BLOCKCHAIN DATA" | "DEMO";
@@ -57,6 +60,8 @@ export type CooperationPriority =
   | "CROSS_BORDER_STANDARD" 
   | "CROSS_BORDER_PRIORITY" 
   | "URGENT_REVIEW";
+
+// ServiceMatchResult imported from shared/types
 
 export interface TypologyFinding {
   id: string;
@@ -205,6 +210,10 @@ export interface GraphEdge {
   serviceInteractionType?: ServiceType;
   typologyFindingId?: string;
   provenanceSource?: ProvenanceSource;
+  isCrossChain?: boolean;
+  correlationId?: string;
+  correlationMethod?: CorrelationMethod;
+  crossChainDetails?: CrossChainCorrelation;
 }
 
 export interface HighRiskAlert {
@@ -259,6 +268,8 @@ export interface ForensicTimelineEvent {
   exposureMode?: ExposureMode;
   walletRole?: WalletRole;
   vaspEntity?: string;
+  isCrossChainEvent?: boolean;
+  correlationId?: string;
 }
 
 export interface AuditLogEntry {
@@ -306,6 +317,7 @@ export interface InvestigationCase {
   serviceFindings?: ServiceMatchResult[];
   typologyFindings?: TypologyFinding[];
   vaspEvaluations?: VASPEvaluationResult[];
+  crossChainCorrelations?: CrossChainCorrelation[];
 }
 
 export interface BatchCaseRecord {
