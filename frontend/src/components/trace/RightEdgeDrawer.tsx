@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GraphEdge } from '../../types';
-import { X, ExternalLink, Copy, Check, ShieldCheck } from 'lucide-react';
+import { X, ExternalLink, Copy, Check, ShieldCheck, Link, GitCommit, AlertTriangle } from 'lucide-react';
 import { getExplorerTxUrl, getChainExplorerName } from '../../utils/explorerLinks';
 
 interface RightEdgeDrawerProps {
@@ -18,6 +18,7 @@ export const RightEdgeDrawer: React.FC<RightEdgeDrawerProps> = ({ edge, onClose 
   const rawFrom = edge.source ? edge.source.replace(/^[^:]+:/, '') : 'Not available';
   const rawTo = edge.target ? edge.target.replace(/^[^:]+:/, '') : 'Not available';
   const chainFromEdge = edge.source ? edge.source.split(':')[0] : undefined;
+  const chainToEdge = edge.target ? edge.target.split(':')[0] : undefined;
 
   const copyToClipboard = (text: string, setCopiedFn: (val: boolean) => void) => {
     if (!text || text === 'Not available') return;
@@ -29,19 +30,92 @@ export const RightEdgeDrawer: React.FC<RightEdgeDrawerProps> = ({ edge, onClose 
   const explorerTxUrl = getExplorerTxUrl(chainFromEdge, edge.txHash);
   const explorerName = getChainExplorerName(chainFromEdge);
 
+  const cd = edge.crossChainDetails;
+
   return (
     <div className="w-84 bg-white border-l border-slate-200 h-full p-4 flex flex-col justify-between shadow-xl z-30 overflow-y-auto">
       <div>
         {/* Drawer Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
           <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Transaction Evidence</h3>
+            <span className={`w-2.5 h-2.5 rounded-full ${edge.isCrossChain ? 'bg-purple-600 animate-pulse' : 'bg-emerald-600'}`}></span>
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+              {edge.isCrossChain ? 'Cross-Chain Transfer Evidence' : 'Transaction Evidence'}
+            </h3>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded text-slate-500">
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Cross-Chain Correlation Card if edge is cross-chain */}
+        {edge.isCrossChain && cd && (
+          <div className="bg-purple-950 text-white rounded-md p-3 mb-4 border border-purple-800/60 space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-1.5">
+                <Link className="w-4 h-4 text-purple-400" />
+                <span className="font-bold text-purple-300 uppercase text-[10px] tracking-wider">Cross-Chain Correlation</span>
+              </div>
+              <span className="px-1.5 py-0.5 rounded bg-purple-900 text-purple-200 font-mono text-[10px] font-bold border border-purple-700">
+                {cd.correlationStatus}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center text-[11px]">
+              <span className="text-purple-300">Method:</span>
+              <span className="font-mono font-bold text-white bg-purple-900/80 px-1.5 py-0.5 rounded text-[10px]">
+                {cd.correlationMethod}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center text-[11px]">
+              <span className="text-purple-300">Chains Connected:</span>
+              <span className="font-mono font-bold text-amber-300">
+                {cd.sourceChain.toUpperCase()} → {cd.destinationChain ? cd.destinationChain.toUpperCase() : 'UNESTABLISHED'}
+              </span>
+            </div>
+
+            {cd.observedTimeDeltaSeconds !== undefined && (
+              <div className="flex justify-between items-center text-[11px]">
+                <span className="text-purple-300">Time Delta:</span>
+                <span className="font-mono text-white">{cd.observedTimeDeltaSeconds}s</span>
+              </div>
+            )}
+
+            {cd.observedValueDeltaPercent !== undefined && (
+              <div className="flex justify-between items-center text-[11px]">
+                <span className="text-purple-300 font-semibold">Value Delta:</span>
+                <span className="font-mono text-emerald-300">{cd.observedValueDeltaPercent}%</span>
+              </div>
+            )}
+
+            {/* Reasons */}
+            {cd.reasons && cd.reasons.length > 0 && (
+              <div className="pt-2 border-t border-purple-800/60 space-y-1">
+                <span className="text-[10px] font-bold text-purple-300 uppercase block">Correlation Reasons:</span>
+                {cd.reasons.map((r: string, i: number) => (
+                  <div key={i} className="flex items-start space-x-1 text-[10px] text-purple-200">
+                    <GitCommit className="w-3 h-3 text-purple-400 shrink-0 mt-0.5" />
+                    <span>{r}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Limitations */}
+            {cd.limitations && (
+              <div className="bg-purple-900/60 p-2 rounded border border-purple-700/60 space-y-1">
+                <div className="flex items-center space-x-1 text-amber-300 text-[10px] font-bold">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>Evidentiary Note</span>
+                </div>
+                <p className="text-[10px] text-purple-200/90 leading-relaxed italic">
+                  {cd.limitations}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Evidence Status Badge */}
         <div className="bg-slate-50 border border-slate-200 rounded-md p-3 mb-4 space-y-1">
@@ -79,10 +153,12 @@ export const RightEdgeDrawer: React.FC<RightEdgeDrawerProps> = ({ edge, onClose 
           {/* Network & Source */}
           <div className="flex justify-between py-1.5 border-b border-slate-100">
             <span className="text-slate-500">Chain Network:</span>
-            <span className="font-semibold text-slate-900">Ethereum Mainnet</span>
+            <span className="font-semibold text-slate-900">
+              {chainFromEdge ? chainFromEdge.toUpperCase() : 'Ethereum Mainnet'} {chainToEdge && chainToEdge !== chainFromEdge ? `→ ${chainToEdge.toUpperCase()}` : ''}
+            </span>
           </div>
 
-          {/* Block Number & Hash */}
+          {/* Block Number */}
           <div className="flex justify-between py-1.5 border-b border-slate-100">
             <span className="text-slate-500">Block Number:</span>
             <span className="font-mono font-semibold text-slate-900">
@@ -153,7 +229,7 @@ export const RightEdgeDrawer: React.FC<RightEdgeDrawerProps> = ({ edge, onClose 
           {/* Data Source Provenance */}
           <div className="flex justify-between py-1.5 border-b border-slate-100">
             <span className="text-slate-500">Data Source:</span>
-            <span className="font-semibold text-blue-900">{edge.sourceProvider || 'Alchemy — Ethereum Mainnet'}</span>
+            <span className="font-semibold text-blue-900">{edge.sourceProvider || 'Alchemy / Multi-Chain Explorer'}</span>
           </div>
         </div>
       </div>
